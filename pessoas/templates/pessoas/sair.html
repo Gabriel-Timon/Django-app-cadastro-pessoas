@@ -1,0 +1,10 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5 text-center">
+    <h1 class="display-6">Sair</h1>
+    <p class="lead text-white-50 mb-4">No navegador não existe “encerrar programa” como no terminal. Você pode fechar esta aba/janela.</p>
+    <a class="btn btn-light" href="{% url 'pessoas:dashboard' %}">
+      <i class="bi bi-house-door me-1"></i>Voltar ao menu principal
+    </a>
+  </div>
+{% endblock %}

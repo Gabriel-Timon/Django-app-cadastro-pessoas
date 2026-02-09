@@ -1,0 +1,46 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">{{ page_title }}</h1>
+        <div class="text-white-50">A menor e a maior idade cadastradas (com base na data de nascimento).</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:menu_estatisticas' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </a>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="glass-card p-3 h-100">
+          <div class="text-white-50">Menor idade</div>
+          {% if mais_nova %}
+            <div class="h5 mb-1">{{ mais_nova.nome }} {{ mais_nova.sobrenome }}</div>
+            <div class="text-white-50">{{ mais_nova.idade }} anos • {{ mais_nova.data_nascimento|date:"d/m/Y" }}</div>
+            <div class="mt-2">
+              <a class="btn btn-sm btn-outline-light" href="{% url 'pessoas:pessoa_detail' mais_nova.pk %}"><i class="bi bi-eye me-1"></i>Ver</a>
+            </div>
+          {% else %}
+            <div class="text-white-50">Sem dados.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="glass-card p-3 h-100">
+          <div class="text-white-50">Maior idade</div>
+          {% if mais_velha %}
+            <div class="h5 mb-1">{{ mais_velha.nome }} {{ mais_velha.sobrenome }}</div>
+            <div class="text-white-50">{{ mais_velha.idade }} anos • {{ mais_velha.data_nascimento|date:"d/m/Y" }}</div>
+            <div class="mt-2">
+              <a class="btn btn-sm btn-outline-light" href="{% url 'pessoas:pessoa_detail' mais_velha.pk %}"><i class="bi bi-eye me-1"></i>Ver</a>
+            </div>
+          {% else %}
+            <div class="text-white-50">Sem dados.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

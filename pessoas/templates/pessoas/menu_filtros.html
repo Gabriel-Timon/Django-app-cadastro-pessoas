@@ -1,0 +1,26 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">Menu de filtros</h1>
+        <div class="text-white-50">As mesmas opções do seu menu de filtros em CLI.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:dashboard' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar ao menu principal
+      </a>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_homens' %}">1. Exibir todos os Homens</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_mulheres' %}">2. Exibir todas as mulheres</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_mais_velha' %}">3. Exibir pessoa mais velha</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_mais_nova' %}">4. Exibir pessoa mais nova</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_menores' %}">5. Exibir pessoas com menos de 18 anos</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_acima_media' %}">6. Exibir pessoas com idade acima da média de idade</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_list' %}">7. Exibir todos os cadastros</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:filtro_aniversariantes_mes' %}">8. Exibir pessoas que fazem aniversário no mesmo mês</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-light w-100" href="{% url 'pessoas:dashboard' %}">0. Voltar ao menu principal</a></div>
+    </div>
+  </div>
+{% endblock %}

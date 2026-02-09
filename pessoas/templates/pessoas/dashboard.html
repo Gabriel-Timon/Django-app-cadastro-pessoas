@@ -1,0 +1,104 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="hero p-4 p-md-5 mb-4 rounded-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+      <div>
+        <h1 class="display-6 mb-1">Menu Principal</h1>
+        <p class="lead mb-0 opacity-75">Todas as opções do menu do seu projeto original, agora em um frontend web com persistência em banco.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-light btn-lg shadow-sm" href="{% url 'pessoas:pessoa_create' %}">
+          <i class="bi bi-person-plus me-1"></i>Adicionar pessoa
+        </a>
+        <a class="btn btn-outline-light btn-lg" href="{% url 'pessoas:buscar_por_cpf' %}">
+          <i class="bi bi-search me-1"></i>Buscar CPF
+        </a>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+      <div class="col-6 col-lg-3">
+        <div class="stat">
+          <div class="stat-label">Total de cadastros</div>
+          <div class="stat-value">{{ total }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat">
+          <div class="stat-label">Homens</div>
+          <div class="stat-value">{{ homens }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat">
+          <div class="stat-label">Mulheres</div>
+          <div class="stat-value">{{ mulheres }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat">
+          <div class="stat-label">Média de idade</div>
+          <div class="stat-value">{{ media_idade }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6 col-xl-3">
+      <a class="card card-menu h-100" href="{% url 'pessoas:menu_filtros' %}">
+        <div class="card-body">
+          <div class="icon-badge"><i class="bi bi-funnel"></i></div>
+          <h5 class="card-title mt-3">Menu de filtros</h5>
+          <p class="card-text text-white-50 mb-0">Homens, mulheres, mais velho, mais novo, menores, acima da média, aniversariantes…</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <a class="card card-menu h-100" href="{% url 'pessoas:menu_edicao_cadastro' %}">
+        <div class="card-body">
+          <div class="icon-badge"><i class="bi bi-pencil-square"></i></div>
+          <h5 class="card-title mt-3">Editar cadastro</h5>
+          <p class="card-text text-white-50 mb-0">Adicionar, editar por CPF e excluir cadastros com confirmação.</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <a class="card card-menu h-100" href="{% url 'pessoas:menu_estatisticas' %}">
+        <div class="card-body">
+          <div class="icon-badge"><i class="bi bi-bar-chart-line"></i></div>
+          <h5 class="card-title mt-3">Exibir estatísticas</h5>
+          <p class="card-text text-white-50 mb-0">Totais, média, faixa etária, maiores/menores, aniversariantes por mês…</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+      <a class="card card-menu h-100" href="{% url 'pessoas:menu_exportacao' %}">
+        <div class="card-body">
+          <div class="icon-badge"><i class="bi bi-box-arrow-up-right"></i></div>
+          <h5 class="card-title mt-3">Opções de exportação</h5>
+          <p class="card-text text-white-50 mb-0">Baixe CSV, XLSX ou JSON diretamente do navegador.</p>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <div class="glass-panel p-3 p-md-4">
+      <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+        <div>
+          <h5 class="mb-1">Atalhos</h5>
+          <div class="text-white-50">Acesso rápido às ações mais usadas.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-card-list me-1"></i>Listar cadastros</a>
+          <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_create' %}"><i class="bi bi-person-plus me-1"></i>Cadastrar pessoa</a>
+          <a class="btn btn-outline-light" href="{% url 'pessoas:menu_exportacao' %}"><i class="bi bi-download me-1"></i>Exportar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

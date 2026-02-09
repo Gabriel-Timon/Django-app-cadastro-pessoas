@@ -1,0 +1,57 @@
+{% extends 'pessoas/base.html' %}
+{% block extra_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">{{ page_title }}</h1>
+        <div class="text-white-50">Contagem de cadastros por sexo.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:menu_estatisticas' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </a>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="stat stat-dark">
+          <div class="stat-label">Homens</div>
+          <div class="stat-value">{{ homens }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat stat-dark">
+          <div class="stat-label">Mulheres</div>
+          <div class="stat-value">{{ mulheres }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat stat-dark">
+          <div class="stat-label">Total</div>
+          <div class="stat-value">{{ homens|add:mulheres }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-3 mt-3">
+      <canvas id="chartSexo" height="120"></canvas>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const ctx = document.getElementById('chartSexo');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Homens', 'Mulheres'],
+      datasets: [{ data: [{{ homens }}, {{ mulheres }}] }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#fff' } } }
+    }
+  });
+</script>
+{% endblock %}
