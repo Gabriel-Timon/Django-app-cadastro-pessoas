@@ -1,6 +1,6 @@
 # Cadastro de Pessoas (Django)
 
-Este projeto é a versão **web (frontend)** do seu sistema de cadastro em CLI.
+Este projeto é a versão **web (frontend)** do meu sistema de cadastro em CLI.
 
 Ele replica **todas as opções** dos menus originais no frontend:
 - Menu de filtros
@@ -30,7 +30,7 @@ Abra no navegador: `http://127.0.0.1:8000/`
 
 ## 2) Banco de dados
 
-Por padrão o Django usa **SQLite** (`db.sqlite3`) — já atende "persistência linkada a banco".
+Por padrão o Django usa **SQLite** (`db.sqlite3`)
 
 Se quiser Postgres, edite `cadastro_pessoas/settings.py` e troque `DATABASES`.
 Exemplo (Postgres):
