@@ -1,0 +1,73 @@
+# ======================
+# Python
+# ======================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ======================
+# Virtual Environment
+# ======================
+.venv/
+venv/
+env/
+
+# ======================
+# Django
+# ======================
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Media files (uploads)
+media/
+
+# Static collected files
+staticfiles/
+
+# ======================
+# Migrations (opcional)
+# ======================
+# Se quiser versionar as migrations, COMENTE essas linhas
+# **/migrations/*.py
+# !**/migrations/__init__.py
+
+# ======================
+# Environment variables
+# ======================
+.env
+.env.*
+
+# ======================
+# IDEs / Editors
+# ======================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ======================
+# OS files
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# Tests / coverage
+# ======================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ======================
+# Node / frontend (se usar)
+# ======================
+node_modules/
+dist/
+build/
+
+# ======================
+# Jupyter (se usar)
+# ======================
+.ipynb_checkpoints/
