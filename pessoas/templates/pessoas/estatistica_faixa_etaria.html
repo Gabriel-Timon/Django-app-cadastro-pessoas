@@ -1,0 +1,54 @@
+{% extends 'pessoas/base.html' %}
+{% block extra_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">{{ page_title }}</h1>
+        <div class="text-white-50">Distribuição em faixas etárias (0-17, 18-29, 30-49, 50+).</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:menu_estatisticas' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </a>
+    </div>
+
+    <div class="row g-3">
+      {% for faixa, qtd in faixas.items %}
+        <div class="col-md-3">
+          <div class="stat stat-dark">
+            <div class="stat-label">{{ faixa }}</div>
+            <div class="stat-value">{{ qtd }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="glass-card p-3 mt-3">
+      <canvas id="chartFaixa" height="120"></canvas>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const labels = {{ labels|safe }};
+  const values = {{ values|safe }};
+
+  const ctx = document.getElementById('chartFaixa');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ data: values }]
+    },
+    options: {
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,.08)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,.08)' } },
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+</script>
+{% endblock %}

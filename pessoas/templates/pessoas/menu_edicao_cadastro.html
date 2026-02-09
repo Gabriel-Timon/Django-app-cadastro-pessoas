@@ -1,0 +1,41 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">Editar cadastro</h1>
+        <div class="text-white-50">Equivalente ao menu “Editar cadastro” do seu projeto em CLI.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:dashboard' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar ao menu principal
+      </a>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6 col-lg-4">
+        <a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_create' %}">
+          1. Adicionar mais pessoas
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="btn btn-menu w-100" href="{% url 'pessoas:buscar_por_cpf' %}?destino=editar">
+          2. Editar uma pessoa (buscar por CPF)
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="btn btn-menu w-100" href="{% url 'pessoas:buscar_por_cpf' %}?destino=excluir">
+          3. Excluir uma pessoa (buscar por CPF)
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <a class="btn btn-outline-light w-100" href="{% url 'pessoas:dashboard' %}">
+          0. Voltar ao menu principal
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-3 text-white-50 small">
+      Dica: você também pode editar/excluir diretamente pela lista em <strong>Cadastros</strong>.
+    </div>
+  </div>
+{% endblock %}

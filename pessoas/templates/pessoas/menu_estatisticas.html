@@ -1,0 +1,25 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">Exibir estatísticas</h1>
+        <div class="text-white-50">As mesmas estatísticas do seu menu em CLI.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:dashboard' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar ao menu principal
+      </a>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_total_cadastros' %}">1. Total de cadastros</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_homens_mulheres' %}">2. Quantidade de homens e mulheres</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_media_idade' %}">3. Média de idade</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_maiores_menores' %}">4. Quantidade de menores e maiores de idade</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_faixa_etaria' %}">5. Quantidade por faixa etária</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_maior_menor_idade' %}">6. Maior e menor idade</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:est_aniversariantes_mes' %}">7. Aniversariantes por mês</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-light w-100" href="{% url 'pessoas:dashboard' %}">0. Voltar ao menu principal</a></div>
+    </div>
+  </div>
+{% endblock %}

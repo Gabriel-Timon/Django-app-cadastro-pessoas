@@ -1,0 +1,15 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5 text-center">
+    <h1 class="h3 mb-2">{{ page_title }}</h1>
+    <div class="text-white-50 mb-4">Total de registros existentes no banco de dados.</div>
+
+    <div class="big-number">{{ total }}</div>
+    <div class="text-white-50 mt-1">cadastros</div>
+
+    <div class="mt-4 d-flex justify-content-center gap-2 flex-wrap">
+      <a class="btn btn-outline-light" href="{% url 'pessoas:menu_estatisticas' %}"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_list' %}"><i class="bi bi-card-list me-1"></i>Ver cadastros</a>
+    </div>
+  </div>
+{% endblock %}

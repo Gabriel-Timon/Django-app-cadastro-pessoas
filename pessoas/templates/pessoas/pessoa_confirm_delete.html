@@ -1,0 +1,23 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <h1 class="h3 mb-2">Excluir uma pessoa</h1>
+    <div class="text-white-50 mb-3">Confirme para remover o cadastro do banco de dados.</div>
+
+    <div class="glass-card p-3 mb-3">
+      <div class="h5 mb-1">{{ pessoa.nome }} {{ pessoa.sobrenome }}</div>
+      <div class="text-white-50">CPF: <span class="font-mono">{{ pessoa.cpf_formatado }}</span></div>
+      <div class="text-white-50">Nascimento: {{ pessoa.data_nascimento|date:"d/m/Y" }} • {{ pessoa.idade }} anos</div>
+    </div>
+
+    <form method="post" class="d-flex gap-2 flex-wrap">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit" onclick="return confirm('Confirmar exclusão do cadastro?');">
+        <i class="bi bi-trash me-1"></i>Confirmar exclusão
+      </button>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_detail' pessoa.pk %}">
+        <i class="bi bi-x-circle me-1"></i>Cancelar
+      </a>
+    </form>
+  </div>
+{% endblock %}

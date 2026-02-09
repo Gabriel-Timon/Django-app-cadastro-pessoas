@@ -1,0 +1,59 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">{{ page_title }}</h1>
+        <div class="text-white-50">Preencha os dados para persistir o cadastro no banco.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_list' %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </a>
+    </div>
+
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <div class="col-md-6">
+        <label class="form-label">Nome</label>
+        {{ form.nome }}
+        {% for err in form.nome.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Sobrenome</label>
+        {{ form.sobrenome }}
+        {% for err in form.sobrenome.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Data de nascimento</label>
+        {{ form.data_nascimento }}
+        {% for err in form.data_nascimento.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+        <div class="form-text text-white-50">Aceita: dd/mm/aaaa ou a seleção do navegador.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Sexo</label>
+        {{ form.sexo }}
+        {% for err in form.sexo.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">CPF</label>
+        {{ form.cpf }}
+        {% for err in form.cpf.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="col-12">
+          {% for err in form.non_field_errors %}<div class="alert alert-danger">{{ err }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="col-12 d-flex gap-2 flex-wrap">
+        <button class="btn btn-light" type="submit">
+          <i class="bi bi-check2-circle me-1"></i>{{ submit_label|default:'Salvar' }}
+        </button>
+        <a class="btn btn-outline-light" href="{% url 'pessoas:dashboard' %}">
+          <i class="bi bi-house-door me-1"></i>Menu principal
+        </a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

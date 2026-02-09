@@ -1,0 +1,144 @@
+/* Estilo "glass + neon" simples e bonito (sem frameworks além do Bootstrap) */
+
+:root {
+  --bg1: #0b1220;
+  --bg2: #0f2a3a;
+  --glass: rgba(255, 255, 255, 0.08);
+  --glass-2: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.14);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(73, 189, 255, 0.22), transparent 55%),
+    radial-gradient(900px 500px at 85% 10%, rgba(255, 92, 224, 0.18), transparent 50%),
+    radial-gradient(1000px 700px at 50% 120%, rgba(77, 255, 166, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  color: #fff;
+}
+
+.glass-nav {
+  background: rgba(7, 10, 16, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.hero {
+  background: linear-gradient(135deg, rgba(73, 189, 255, 0.22), rgba(255, 92, 224, 0.16));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.glass-panel {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.glass-card {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  backdrop-filter: blur(10px);
+}
+
+.card-menu {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 1rem;
+  color: #fff;
+  text-decoration: none;
+  transition: transform .12s ease, border-color .12s ease;
+  box-shadow: 0 10px 26px rgba(0,0,0,.22);
+  backdrop-filter: blur(10px);
+}
+
+.card-menu:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.25);
+}
+
+.icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.10);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.icon-badge i {
+  font-size: 1.25rem;
+}
+
+.btn-menu {
+  background: rgba(255,255,255,.07);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: .9rem;
+  padding: .8rem 1rem;
+  text-align: left;
+  box-shadow: 0 6px 18px rgba(0,0,0,.20);
+}
+
+.btn-menu:hover {
+  background: rgba(255,255,255,.11);
+  color: #fff;
+  border-color: rgba(255,255,255,.22);
+}
+
+.stat {
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.stat-dark {
+  background: rgba(0,0,0,.18);
+}
+
+.stat-label {
+  font-size: .85rem;
+  color: rgba(255,255,255,.70);
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.big-number {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.info-card {
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 1rem;
+}
+
+.info-card .label {
+  font-size: .8rem;
+  color: rgba(255,255,255,.65);
+}
+
+.info-card .value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}

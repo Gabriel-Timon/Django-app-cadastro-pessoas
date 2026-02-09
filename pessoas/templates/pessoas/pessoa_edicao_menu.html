@@ -1,0 +1,33 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="glass-panel p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h3 mb-1">Opções de edição</h1>
+        <div class="text-white-50">Replica o menu “O que deseja editar?” do seu projeto.</div>
+      </div>
+      <a class="btn btn-outline-light" href="{% url 'pessoas:pessoa_detail' pessoa.pk %}">
+        <i class="bi bi-arrow-left me-1"></i>Voltar
+      </a>
+    </div>
+
+    <div class="glass-card p-3 mb-3">
+      <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+        <div>
+          <div class="text-white-50">Cadastro selecionado</div>
+          <div class="h5 mb-0">{{ pessoa.nome }} {{ pessoa.sobrenome }}</div>
+        </div>
+        <div class="text-white-50">CPF: <span class="font-mono">{{ pessoa.cpf_formatado }}</span></div>
+      </div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_edit_nome' pessoa.pk %}">1. Nome</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_edit_sobrenome' pessoa.pk %}">2. Sobrenome</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_edit_nascimento' pessoa.pk %}">3. Data de nascimento</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_edit_sexo' pessoa.pk %}">4. Sexo</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_edit_cpf' pessoa.pk %}">5. CPF</a></div>
+      <div class="col-md-6 col-lg-4"><a class="btn btn-outline-light w-100" href="{% url 'pessoas:pessoa_detail' pessoa.pk %}">0. Cancelar operação</a></div>
+    </div>
+  </div>
+{% endblock %}
