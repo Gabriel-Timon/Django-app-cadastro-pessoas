@@ -83,6 +83,21 @@ Para validar a configuração do projeto:
 python manage.py check
 ```
 
+## Rotas principais
+
+| Área | Rotas disponíveis |
+| --- | --- |
+| Dashboard | `/` |
+| Cadastros | `/pessoas/`, `/pessoas/nova/`, `/pessoas/<id>/` |
+| Busca | `/cadastro/buscar/` |
+| Edição | `/pessoas/<id>/editar/` e subrotas por campo |
+| Filtros | `/filtros/` e subrotas por sexo, idade e aniversário |
+| Estatísticas | `/estatisticas/` e subrotas de indicadores |
+| Exportações | `/exportacao/csv/`, `/exportacao/xlsx/`, `/exportacao/json/` |
+| Administração | `/admin/` |
+
+O projeto web é um complemento da versão CLI: mantém as mesmas operações de cadastro, consulta, edição, filtros, estatísticas e exportação, adicionando interface responsiva e persistência via Django ORM.
+
 ## Configuração por ambiente
 
 As configurações sensíveis e específicas do ambiente podem ser definidas por variáveis de ambiente. Consulte `.env.example` como referência:
