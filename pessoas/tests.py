@@ -1,9 +1,10 @@
 import json
 from datetime import date, timedelta
-from io import BytesIO
+from io import BytesIO, StringIO
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from openpyxl import load_workbook
@@ -127,6 +128,229 @@ class AccessControlTests(SecureRequestMixin, TestCase):
 
         self.assertEqual(get_response.status_code, 405)
         self.assertRedirects(post_response, reverse('login'))
+
+
+class SignupTests(SecureRequestMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.demo_pessoa = Pessoa.objects.create(
+            demo_key='portfolio-demo-001',
+            nome='Pessoa',
+            sobrenome='Demonstração',
+            data_nascimento=date(1995, 6, 15),
+            sexo=Pessoa.SEXO_FEM,
+            cpf=cpf_from_base('456123789'),
+        )
+        cls.private_pessoa = Pessoa.objects.create(
+            nome='Registro',
+            sobrenome='Não demonstrativo',
+            data_nascimento=date(1990, 1, 1),
+            sexo=Pessoa.SEXO_MASC,
+            cpf=cpf_from_base('741852963'),
+        )
+        cls.noncanonical_demo = Pessoa.objects.create(
+            demo_key='portfolio-demo-extra',
+            nome='Marcado',
+            sobrenome='Fora da lista canônica',
+            data_nascimento=date(1988, 2, 2),
+            sexo=Pessoa.SEXO_MASC,
+            cpf=cpf_from_base('852741963'),
+        )
+
+    def signup_data(self, **overrides):
+        data = {
+            'username': 'visitante-demo',
+            'email': 'visitante@example.com',
+            'password1': 'Senha-forte-de-portfolio-2026!',
+            'password2': 'Senha-forte-de-portfolio-2026!',
+            'website': '',
+        }
+        data.update(overrides)
+        return data
+
+    def test_signup_is_public_and_creates_logged_in_read_only_user(self):
+        self.assertEqual(self.client.get(reverse('pessoas:signup')).status_code, 200)
+
+        response = self.client.post(reverse('pessoas:signup'), self.signup_data())
+
+        self.assertRedirects(response, reverse('pessoas:dashboard'))
+        user = get_user_model().objects.get(username='visitante-demo')
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.get_all_permissions(), {'pessoas.view_pessoa'})
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+
+    def test_read_only_user_sees_only_demo_data_and_not_privileged_actions(self):
+        self.client.post(reverse('pessoas:signup'), self.signup_data())
+
+        list_response = self.client.get(reverse('pessoas:pessoa_list'))
+        dashboard_response = self.client.get(reverse('pessoas:dashboard'))
+
+        self.assertContains(list_response, self.demo_pessoa.nome)
+        self.assertNotContains(list_response, self.private_pessoa.sobrenome)
+        self.assertNotContains(list_response, self.noncanonical_demo.sobrenome)
+        self.assertContains(dashboard_response, 'somente leitura')
+        self.assertContains(dashboard_response, 'Menu de filtros')
+        self.assertContains(dashboard_response, 'Exibir estat')
+        self.assertNotContains(dashboard_response, 'Adicionar pessoa')
+        self.assertNotContains(dashboard_response, 'Editar cadastro')
+        self.assertNotContains(dashboard_response, 'Opções de exportação')
+        self.assertEqual(
+            self.client.get(
+                reverse('pessoas:pessoa_detail', kwargs={'pk': self.private_pessoa.pk})
+            ).status_code,
+            404,
+        )
+
+    def test_read_only_user_can_query_filters_and_dashboards(self):
+        self.client.post(reverse('pessoas:signup'), self.signup_data())
+
+        readable_routes = (
+            'pessoas:dashboard',
+            'pessoas:pessoa_list',
+            'pessoas:menu_filtros',
+            'pessoas:filtro_mulheres',
+            'pessoas:menu_estatisticas',
+            'pessoas:est_homens_mulheres',
+            'pessoas:est_faixa_etaria',
+        )
+        for route in readable_routes:
+            with self.subTest(route=route):
+                self.assertEqual(self.client.get(reverse(route)).status_code, 200)
+
+    def test_read_only_user_cannot_mutate_export_or_access_admin(self):
+        self.client.post(reverse('pessoas:signup'), self.signup_data())
+
+        denied_routes = (
+            reverse('pessoas:pessoa_create'),
+            reverse('pessoas:pessoa_edicao_menu', kwargs={'pk': self.demo_pessoa.pk}),
+            reverse('pessoas:pessoa_delete', kwargs={'pk': self.demo_pessoa.pk}),
+            reverse('pessoas:buscar_por_cpf'),
+            reverse('pessoas:export_csv'),
+        )
+        for url in denied_routes:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+        original_name = self.demo_pessoa.nome
+        mutation_attempts = (
+            (
+                reverse('pessoas:pessoa_create'),
+                {
+                    'nome': 'Invasor',
+                    'sobrenome': 'Bloqueado',
+                    'data_nascimento': '01/01/2000',
+                    'sexo': Pessoa.SEXO_MASC,
+                    'cpf': cpf_from_base('159357486'),
+                },
+            ),
+            (
+                reverse('pessoas:pessoa_edit_nome', kwargs={'pk': self.demo_pessoa.pk}),
+                {'nome': 'Alterado'},
+            ),
+            (
+                reverse('pessoas:pessoa_delete', kwargs={'pk': self.demo_pessoa.pk}),
+                {},
+            ),
+        )
+        for url, payload in mutation_attempts:
+            with self.subTest(method='POST', url=url):
+                self.assertEqual(self.client.post(url, payload).status_code, 403)
+
+        self.demo_pessoa.refresh_from_db()
+        self.assertEqual(self.demo_pessoa.nome, original_name)
+        self.assertFalse(Pessoa.objects.filter(nome='Invasor').exists())
+
+        admin_response = self.client.get('/admin/')
+        self.assertEqual(admin_response.status_code, 302)
+        self.assertIn('/admin/login/', admin_response.url)
+
+    def test_signup_ignores_privilege_fields_and_rejects_duplicate_email(self):
+        first_data = self.signup_data(is_staff='on', is_superuser='on', user_permissions='1')
+        self.client.post(reverse('pessoas:signup'), first_data)
+        user = get_user_model().objects.get(username='visitante-demo')
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.get_all_permissions(), {'pessoas.view_pessoa'})
+
+        self.client.logout()
+        duplicate = self.signup_data(
+            username='outro-visitante',
+            email='VISITANTE@example.com',
+        )
+        response = self.client.post(reverse('pessoas:signup'), duplicate)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(username='outro-visitante').exists())
+
+    def test_signup_rejects_honeypot_and_rate_limits_attempts(self):
+        honeypot_response = self.client.post(
+            reverse('pessoas:signup'),
+            self.signup_data(website='https://spam.example'),
+            REMOTE_ADDR='198.51.100.10',
+        )
+        self.assertEqual(honeypot_response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(username='visitante-demo').exists())
+
+        for _ in range(5):
+            response = self.client.post(
+                reverse('pessoas:signup'),
+                {'username': ''},
+                REMOTE_ADDR='203.0.113.10',
+            )
+            self.assertEqual(response.status_code, 200)
+
+        limited_response = self.client.post(
+            reverse('pessoas:signup'),
+            {'username': ''},
+            REMOTE_ADDR='203.0.113.10',
+        )
+        self.assertEqual(limited_response.status_code, 429)
+        self.assertIn('Retry-After', limited_response)
+        self.assertContains(limited_response, 'aproximadamente 60 minutos', status_code=429)
+        self.assertNotContains(limited_response, 'Criar conta e entrar', status_code=429)
+
+
+class DemoSeedTests(TestCase):
+    def test_seed_creates_exactly_50_balanced_idempotent_records(self):
+        first_output = StringIO()
+        call_command('seed_demo_data', stdout=first_output)
+
+        demo_people = Pessoa.objects.filter(demo_key__isnull=False)
+        self.assertEqual(demo_people.count(), 50)
+        self.assertEqual(demo_people.filter(sexo=Pessoa.SEXO_FEM).count(), 25)
+        self.assertEqual(demo_people.filter(sexo=Pessoa.SEXO_MASC).count(), 25)
+        self.assertEqual(demo_people.values('demo_key').distinct().count(), 50)
+        self.assertIn('50 registros', first_output.getvalue())
+
+        for gender in (Pessoa.SEXO_FEM, Pessoa.SEXO_MASC):
+            ages = [person.idade for person in demo_people.filter(sexo=gender)]
+            self.assertTrue(any(age <= 17 for age in ages))
+            self.assertTrue(any(18 <= age <= 29 for age in ages))
+            self.assertTrue(any(30 <= age <= 49 for age in ages))
+            self.assertTrue(any(age >= 50 for age in ages))
+        for person in demo_people:
+            person.full_clean()
+
+        unchanged_timestamp = demo_people.get(
+            demo_key='portfolio-demo-001'
+        ).atualizado_em
+        non_demo = Pessoa.objects.create(
+            nome='Registro',
+            sobrenome='Preservado',
+            data_nascimento=date(1980, 1, 1),
+            sexo=Pessoa.SEXO_MASC,
+            cpf=cpf_from_base('321654987'),
+        )
+        second_output = StringIO()
+        call_command('seed_demo_data', stdout=second_output)
+
+        self.assertEqual(Pessoa.objects.filter(demo_key__isnull=False).count(), 50)
+        self.assertTrue(Pessoa.objects.filter(pk=non_demo.pk).exists())
+        self.assertEqual(
+            Pessoa.objects.get(demo_key='portfolio-demo-001').atualizado_em,
+            unchanged_timestamp,
+        )
+        self.assertIn('0 criados, 0 atualizados, 50 inalterados', second_output.getvalue())
 
 
 class PessoaViewTests(SecureRequestMixin, TestCase):

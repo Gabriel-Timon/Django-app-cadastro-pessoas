@@ -11,7 +11,22 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cadastro_pessoas_ci
+          POSTGRES_USER: cadastro_ci
+          POSTGRES_PASSWORD: cadastro_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cadastro_ci -d cadastro_pessoas_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
+      DATABASE_URL: postgres://cadastro_ci:cadastro_ci_password@localhost:5432/cadastro_pessoas_ci
       DJANGO_ALLOWED_HOSTS: localhost,testserver
       DJANGO_DEBUG: "False"
       DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "True"

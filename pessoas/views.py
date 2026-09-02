@@ -6,7 +6,8 @@ from datetime import date
 from io import BytesIO
 
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_not_required, permission_required
 from django.db.models import Count, Q
 from django.db.models.functions import ExtractMonth
 from django.http import HttpResponse
@@ -19,13 +20,15 @@ from .forms import (
     BuscarCPFForm,
     MesForm,
     PessoaForm,
+    SignupForm,
     EditarNomeForm,
     EditarSobrenomeForm,
     EditarNascimentoForm,
     EditarSexoForm,
     EditarCPFForm,
 )
-from .models import Pessoa
+from .models import DEMO_KEYS, Pessoa
+from .throttling import consume_signup_attempt
 
 
 view_pessoa_required = permission_required('pessoas.view_pessoa', raise_exception=True)
@@ -33,6 +36,42 @@ add_pessoa_required = permission_required('pessoas.add_pessoa', raise_exception=
 change_pessoa_required = permission_required('pessoas.change_pessoa', raise_exception=True)
 delete_pessoa_required = permission_required('pessoas.delete_pessoa', raise_exception=True)
 export_pessoa_required = permission_required('pessoas.export_pessoa', raise_exception=True)
+
+
+@login_not_required
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('pessoas:dashboard')
+
+    if request.method == 'POST':
+        allowed, retry_after = consume_signup_attempt(request)
+        if not allowed:
+            response = render(
+                request,
+                'registration/signup.html',
+                {
+                    'form': SignupForm(),
+                    'page_title': 'Criar conta',
+                    'rate_limited': True,
+                    'retry_after_minutes': max(1, (retry_after + 59) // 60),
+                },
+                status=429,
+            )
+            response.headers['Retry-After'] = str(retry_after)
+            return response
+
+    form = SignupForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        login(request, user)
+        messages.success(request, 'Conta criada! Seu acesso é somente para consultas e dashboards.')
+        return redirect('pessoas:dashboard')
+
+    return render(
+        request,
+        'registration/signup.html',
+        {'form': form, 'page_title': 'Criar conta'},
+    )
 
 
 # -------------------------
@@ -61,12 +100,19 @@ def spreadsheet_safe(value):
     return value
 
 
+def visible_pessoas(request):
+    pessoas = Pessoa.objects.all()
+    if not request.user.has_perm('pessoas.change_pessoa'):
+        pessoas = pessoas.filter(demo_key__in=DEMO_KEYS)
+    return pessoas
+
+
 # -------------------------
 # Menu Principal
 # -------------------------
 @view_pessoa_required
 def dashboard(request):
-    pessoas_qs = Pessoa.objects.all()
+    pessoas_qs = visible_pessoas(request)
     pessoas = list(pessoas_qs)
     total = len(pessoas)
     homens = sum(1 for p in pessoas if p.sexo == Pessoa.SEXO_MASC)
@@ -101,7 +147,7 @@ def menu_edicao_cadastro(request):
 @view_pessoa_required
 def pessoa_list(request):
     q = (request.GET.get('q') or '').strip()
-    pessoas_qs = Pessoa.objects.all()
+    pessoas_qs = visible_pessoas(request)
 
     if q:
         pessoas_qs = pessoas_qs.filter(Q(nome__icontains=q) | Q(sobrenome__icontains=q))
@@ -134,13 +180,13 @@ def pessoa_create(request):
 
 @view_pessoa_required
 def pessoa_detail(request, pk: int):
-    pessoa = get_object_or_404(Pessoa, pk=pk)
+    pessoa = get_object_or_404(visible_pessoas(request), pk=pk)
     return render(request, 'pessoas/pessoa_detail.html', {
         'page_title': 'Detalhes do cadastro',
         'pessoa': pessoa,
     })
 
-@view_pessoa_required
+@change_pessoa_required
 def buscar_por_cpf(request):
     """Página única de busca por CPF.
 
@@ -152,7 +198,7 @@ def buscar_por_cpf(request):
         form = BuscarCPFForm(request.POST)
         if form.is_valid():
             cpf = form.cleaned_data['cpf']
-            pessoa = Pessoa.objects.filter(cpf=cpf).first()
+            pessoa = visible_pessoas(request).filter(cpf=cpf).first()
             if pessoa:
                 messages.success(request, '✅ Cadastro encontrado!')
 
@@ -265,7 +311,7 @@ def menu_exportacao(request):
 # -------------------------
 @view_pessoa_required
 def filtro_homens(request):
-    pessoas = Pessoa.objects.filter(sexo=Pessoa.SEXO_MASC).order_by('nome', 'sobrenome')
+    pessoas = visible_pessoas(request).filter(sexo=Pessoa.SEXO_MASC).order_by('nome', 'sobrenome')
     return render(request, 'pessoas/pessoas_list.html', {
         'page_title': 'Exibir todos os Homens',
         'page_subtitle': 'Filtro: sexo masculino',
@@ -275,7 +321,7 @@ def filtro_homens(request):
 
 @view_pessoa_required
 def filtro_mulheres(request):
-    pessoas = Pessoa.objects.filter(sexo=Pessoa.SEXO_FEM).order_by('nome', 'sobrenome')
+    pessoas = visible_pessoas(request).filter(sexo=Pessoa.SEXO_FEM).order_by('nome', 'sobrenome')
     return render(request, 'pessoas/pessoas_list.html', {
         'page_title': 'Exibir todas as mulheres',
         'page_subtitle': 'Filtro: sexo feminino',
@@ -285,7 +331,7 @@ def filtro_mulheres(request):
 
 @view_pessoa_required
 def filtro_mais_velha(request):
-    pessoa = Pessoa.objects.order_by('data_nascimento').first()
+    pessoa = visible_pessoas(request).order_by('data_nascimento').first()
     if not pessoa:
         messages.warning(request, '⚠️ Não há cadastros ainda.')
         return redirect('pessoas:pessoa_list')
@@ -296,7 +342,7 @@ def filtro_mais_velha(request):
 
 @view_pessoa_required
 def filtro_mais_nova(request):
-    pessoa = Pessoa.objects.order_by('-data_nascimento').first()
+    pessoa = visible_pessoas(request).order_by('-data_nascimento').first()
     if not pessoa:
         messages.warning(request, '⚠️ Não há cadastros ainda.')
         return redirect('pessoas:pessoa_list')
@@ -309,7 +355,7 @@ def filtro_mais_nova(request):
 def filtro_menores(request):
     hoje = date.today()
     corte = years_ago(hoje, 18)  # nasceu depois disso => menor de 18
-    pessoas = Pessoa.objects.filter(data_nascimento__gt=corte).order_by('data_nascimento')
+    pessoas = visible_pessoas(request).filter(data_nascimento__gt=corte).order_by('data_nascimento')
     return render(request, 'pessoas/pessoas_list.html', {
         'page_title': 'Exibir pessoas com menos de 18 anos',
         'page_subtitle': f'Corte: nascidos após {corte.strftime("%d/%m/%Y")}',
@@ -319,7 +365,7 @@ def filtro_menores(request):
 
 @view_pessoa_required
 def filtro_acima_media(request):
-    pessoas = list(Pessoa.objects.all())
+    pessoas = list(visible_pessoas(request))
     media = calc_media_idade(pessoas)
     acima = [p for p in pessoas if p.idade > media]
     acima.sort(key=lambda p: (-p.idade, p.nome))
@@ -337,7 +383,9 @@ def filtro_aniversariantes_mes(request):
 
     if request.method == 'POST' and form.is_valid():
         mes_escolhido = int(form.cleaned_data['mes'])
-        pessoas = Pessoa.objects.filter(data_nascimento__month=mes_escolhido).order_by('data_nascimento')
+        pessoas = visible_pessoas(request).filter(
+            data_nascimento__month=mes_escolhido
+        ).order_by('data_nascimento')
         if not pessoas.exists():
             messages.info(request, 'ℹ️ Não há aniversariantes neste mês.')
 
@@ -354,7 +402,7 @@ def filtro_aniversariantes_mes(request):
 # -------------------------
 @view_pessoa_required
 def est_total_cadastros(request):
-    total = Pessoa.objects.count()
+    total = visible_pessoas(request).count()
     return render(request, 'pessoas/estatistica_total.html', {
         'page_title': 'Total de cadastros',
         'total': total,
@@ -362,8 +410,9 @@ def est_total_cadastros(request):
 
 @view_pessoa_required
 def est_homens_mulheres(request):
-    homens = Pessoa.objects.filter(sexo=Pessoa.SEXO_MASC).count()
-    mulheres = Pessoa.objects.filter(sexo=Pessoa.SEXO_FEM).count()
+    pessoas = visible_pessoas(request)
+    homens = pessoas.filter(sexo=Pessoa.SEXO_MASC).count()
+    mulheres = pessoas.filter(sexo=Pessoa.SEXO_FEM).count()
     return render(request, 'pessoas/estatistica_sexo.html', {
         'page_title': 'Quantidade de homens e mulheres',
         'homens': homens,
@@ -377,7 +426,7 @@ def est_homens_mulheres(request):
 
 @view_pessoa_required
 def est_media_idade(request):
-    pessoas = list(Pessoa.objects.all())
+    pessoas = list(visible_pessoas(request))
     media = calc_media_idade(pessoas)
     return render(request, 'pessoas/estatistica_media_idade.html', {
         'page_title': 'Média de idade',
@@ -388,8 +437,9 @@ def est_media_idade(request):
 def est_maiores_menores(request):
     hoje = date.today()
     corte = years_ago(hoje, 18)
-    menores = Pessoa.objects.filter(data_nascimento__gt=corte).count()
-    maiores = Pessoa.objects.filter(data_nascimento__lte=corte).count()
+    pessoas = visible_pessoas(request)
+    menores = pessoas.filter(data_nascimento__gt=corte).count()
+    maiores = pessoas.filter(data_nascimento__lte=corte).count()
     return render(request, 'pessoas/estatistica_maiores_menores.html', {
         'page_title': 'Quantidade de menores e maiores de idade',
         'menores': menores,
@@ -399,7 +449,7 @@ def est_maiores_menores(request):
 
 @view_pessoa_required
 def est_faixa_etaria(request):
-    pessoas = list(Pessoa.objects.all())
+    pessoas = list(visible_pessoas(request))
     faixa_0_17 = sum(1 for p in pessoas if 0 <= p.idade <= 17)
     faixa_18_29 = sum(1 for p in pessoas if 18 <= p.idade <= 29)
     faixa_30_49 = sum(1 for p in pessoas if 30 <= p.idade <= 49)
@@ -425,8 +475,9 @@ def est_faixa_etaria(request):
 
 @view_pessoa_required
 def est_maior_menor_idade(request):
-    pessoa_mais_velha = Pessoa.objects.order_by('data_nascimento').first()
-    pessoa_mais_nova = Pessoa.objects.order_by('-data_nascimento').first()
+    pessoas = visible_pessoas(request)
+    pessoa_mais_velha = pessoas.order_by('data_nascimento').first()
+    pessoa_mais_nova = pessoas.order_by('-data_nascimento').first()
     return render(request, 'pessoas/estatistica_maior_menor_idade.html', {
         'page_title': 'Maior e menor idade',
         'mais_velha': pessoa_mais_velha,
@@ -436,7 +487,7 @@ def est_maior_menor_idade(request):
 @view_pessoa_required
 def est_aniversariantes_mes(request):
     qs = (
-        Pessoa.objects
+        visible_pessoas(request)
         .annotate(mes=ExtractMonth('data_nascimento'))
         .values('mes')
         .annotate(qtd=Count('id'))
@@ -473,8 +524,8 @@ def est_aniversariantes_mes(request):
 # -------------------------
 # Exportação (equivalente ao CLI)
 # -------------------------
-def _pessoas_to_rows():
-    pessoas = Pessoa.objects.all().order_by('nome', 'sobrenome')
+def _pessoas_to_rows(pessoas):
+    pessoas = pessoas.order_by('nome', 'sobrenome')
     for p in pessoas:
         row = {
             'nome': p.nome,
@@ -488,7 +539,7 @@ def _pessoas_to_rows():
 
 @export_pessoa_required
 def export_csv(request):
-    dados = list(_pessoas_to_rows())
+    dados = list(_pessoas_to_rows(visible_pessoas(request)))
     if not dados:
         messages.error(request, '❌ Não há cadastros para exportar.')
         return redirect('pessoas:menu_exportacao')
@@ -505,7 +556,7 @@ def export_csv(request):
 
 @export_pessoa_required
 def export_json(request):
-    dados = list(_pessoas_to_rows())
+    dados = list(_pessoas_to_rows(visible_pessoas(request)))
     if not dados:
         messages.error(request, '❌ Não há cadastros para exportar.')
         return redirect('pessoas:menu_exportacao')
@@ -519,7 +570,7 @@ def export_json(request):
 
 @export_pessoa_required
 def export_xlsx(request):
-    dados = list(_pessoas_to_rows())
+    dados = list(_pessoas_to_rows(visible_pessoas(request)))
     if not dados:
         messages.error(request, '❌ Não há cadastros para exportar.')
         return redirect('pessoas:menu_exportacao')

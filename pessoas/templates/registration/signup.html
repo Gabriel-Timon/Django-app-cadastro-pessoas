@@ -1,0 +1,55 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="row justify-content-center py-4">
+    <div class="col-md-8 col-lg-6">
+      <div class="glass-panel p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="icon-badge mx-auto mb-3"><i class="bi bi-person-plus"></i></div>
+          <h1 class="h3 mb-1">Criar conta de consulta</h1>
+          <p class="text-white-50 mb-0">
+            A conta permite visualizar registros fictícios, filtros e dashboards, sem cadastrar, editar, excluir ou exportar dados.
+          </p>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        {% if rate_limited %}
+          <div class="alert alert-warning" role="alert">
+            Muitas tentativas de cadastro. Tente novamente em aproximadamente {{ retry_after_minutes|default:1 }} minuto{{ retry_after_minutes|pluralize }}.
+          </div>
+        {% endif %}
+
+        {% if not rate_limited %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div aria-hidden="true">{{ form.website }}</div>
+
+          {% for field in form.visible_fields %}
+            {% if field.name != 'website' %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="form-text text-white-50">{{ field.help_text|safe }}</div>{% endif %}
+              {% for error in field.errors %}<div class="text-warning small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+          {% endfor %}
+
+          <button class="btn btn-light w-100" type="submit">
+            <i class="bi bi-person-check me-1"></i>Criar conta e entrar
+          </button>
+        </form>
+        {% endif %}
+
+        <div class="text-center mt-3">
+          <span class="text-white-50">Já possui uma conta?</span>
+          <a class="link-light" href="{% url 'login' %}">Entrar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

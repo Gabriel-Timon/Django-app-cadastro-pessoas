@@ -12,21 +12,27 @@
     </div>
 
     <div class="row g-2">
+      {% if perms.pessoas.add_pessoa %}
       <div class="col-md-6 col-lg-4">
         <a class="btn btn-menu w-100" href="{% url 'pessoas:pessoa_create' %}">
           1. Adicionar mais pessoas
         </a>
       </div>
+      {% endif %}
+      {% if perms.pessoas.change_pessoa %}
       <div class="col-md-6 col-lg-4">
         <a class="btn btn-menu w-100" href="{% url 'pessoas:buscar_por_cpf' %}?destino=editar">
           2. Editar uma pessoa (buscar por CPF)
         </a>
       </div>
+      {% endif %}
+      {% if perms.pessoas.delete_pessoa %}
       <div class="col-md-6 col-lg-4">
         <a class="btn btn-menu w-100" href="{% url 'pessoas:buscar_por_cpf' %}?destino=excluir">
           3. Excluir uma pessoa (buscar por CPF)
         </a>
       </div>
+      {% endif %}
       <div class="col-md-6 col-lg-4">
         <a class="btn btn-outline-light w-100" href="{% url 'pessoas:dashboard' %}">
           0. Voltar ao menu principal

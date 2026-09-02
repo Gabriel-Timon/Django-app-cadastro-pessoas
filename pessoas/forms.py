@@ -2,9 +2,84 @@ from __future__ import annotations
 
 import re
 from django import forms
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from .models import Pessoa, validate_cpf
+
+
+User = get_user_model()
+
+
+class SignupForm(UserCreationForm):
+    email = forms.EmailField(
+        label='E-mail',
+        max_length=254,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'autocomplete': 'email'}),
+    )
+    website = forms.CharField(
+        required=False,
+        label='Website',
+        widget=forms.TextInput(
+            attrs={
+                'autocomplete': 'off',
+                'class': 'position-absolute opacity-0',
+                'tabindex': '-1',
+                'aria-hidden': 'true',
+            }
+        ),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ('username', 'email')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].label = 'Usuário'
+        self.fields['username'].widget.attrs.update(
+            {'class': 'form-control', 'autocomplete': 'username', 'autofocus': True}
+        )
+        self.fields['password1'].label = 'Senha'
+        self.fields['password1'].widget.attrs.update(
+            {'class': 'form-control', 'autocomplete': 'new-password'}
+        )
+        self.fields['password2'].label = 'Confirme a senha'
+        self.fields['password2'].widget.attrs.update(
+            {'class': 'form-control', 'autocomplete': 'new-password'}
+        )
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError('Já existe uma conta com este e-mail.')
+        return email
+
+    def clean_website(self):
+        if self.cleaned_data.get('website'):
+            raise ValidationError('Não foi possível concluir o cadastro.')
+        return ''
+
+    @transaction.atomic
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.is_staff = False
+        user.is_superuser = False
+        if not commit:
+            return user
+
+        user.save()
+        view_permission = Permission.objects.get(
+            content_type__app_label=Pessoa._meta.app_label,
+            content_type__model=Pessoa._meta.model_name,
+            codename='view_pessoa',
+        )
+        user.user_permissions.set([view_permission])
+        return user
 
 def normalize_cpf(value: str) -> str:
     return re.sub(r'[^0-9]+', '', value or '')

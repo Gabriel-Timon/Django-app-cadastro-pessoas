@@ -4,6 +4,7 @@ from . import views
 app_name = 'pessoas'
 
 urlpatterns = [
+    path('accounts/signup/', views.signup, name='signup'),
     path('', views.dashboard, name='dashboard'),
 
     # Menus principais (equivalentes aos menus do CLI)

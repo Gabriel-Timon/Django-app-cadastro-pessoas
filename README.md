@@ -5,13 +5,15 @@
 
 Aplicação web de gestão de pessoas construída com Django. O projeto demonstra CRUD, filtros, estatísticas e exportação de dados em uma interface responsiva, com controles de acesso e configuração pronta para execução serverless na Vercel.
 
-**Aplicação em produção:** <https://django-app-cadastro-pessoas.vercel.app/> (acesso autenticado).
+**Aplicação em produção:** <https://django-app-cadastro-pessoas.vercel.app/>. Qualquer visitante pode criar uma conta de consulta sem privilégios.
 
 > Projeto educacional de portfólio. Use somente dados sintéticos; não cadastre informações pessoais reais.
 
 ## Funcionalidades
 
 - cadastro, consulta, edição por campo e exclusão;
+- auto cadastro de contas somente leitura para demonstração pública;
+- 50 pessoas sintéticas, balanceadas entre os dois gêneros suportados e todas as faixas etárias do dashboard;
 - busca protegida por CPF e pesquisa por nome ou sobrenome;
 - filtros por sexo, idade e mês de aniversário;
 - estatísticas e gráficos por faixa etária, sexo e aniversário;
@@ -22,6 +24,9 @@ Aplicação web de gestão de pessoas construída com Django. O projeto demonstr
 ## Segurança
 
 - autenticação obrigatória em todas as páginas de dados;
+- signup com privilégio mínimo: somente `view_pessoa`, sem acesso administrativo, mutações ou exportações;
+- leitores enxergam exclusivamente registros marcados tecnicamente como demonstração;
+- rate limiting distribuído no PostgreSQL e honeypot no cadastro de contas;
 - permissões separadas para visualizar, cadastrar, alterar, excluir e exportar;
 - CPF validado e mascarado em páginas, admin, mensagens e exportações;
 - proteção contra formula injection em CSV e XLSX;
@@ -52,6 +57,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python manage.py migrate
+python manage.py seed_demo_data
 python manage.py createsuperuser
 python manage.py runserver
 ```
@@ -71,7 +77,7 @@ python -m pip check
 python -m pip_audit --requirement requirements.txt
 ```
 
-A suíte cobre regras do modelo, CPF, formulários, autenticação, permissões, CRUD, filtros, estatísticas, headers de segurança, mascaramento e exportações.
+A suíte roda sobre PostgreSQL no CI e cobre regras do modelo, CPF, signup, rate limiting, privilégio mínimo, isolamento dos 50 IDs demo canônicos, seed idempotente, CRUD, filtros, estatísticas, headers de segurança, mascaramento e exportações.
 
 ## Deploy na Vercel
 
@@ -96,6 +102,7 @@ O procedimento operacional completo está em [DEPLOYMENT.md](DEPLOYMENT.md).
 | Área | Rotas |
 | --- | --- |
 | Login | `/accounts/login/` |
+| Criar conta de consulta | `/accounts/signup/` |
 | Dashboard | `/` |
 | Cadastros | `/pessoas/`, `/pessoas/nova/`, `/pessoas/<id>/` |
 | Busca protegida | `/cadastro/buscar/` |
@@ -110,6 +117,7 @@ O procedimento operacional completo está em [DEPLOYMENT.md](DEPLOYMENT.md).
 cadastro_pessoas/       # settings, URLs e entrypoints WSGI/ASGI
 pessoas/                # domínio, views, forms, templates e estáticos
   migrations/           # evolução versionada do schema
+  management/commands/  # geração idempotente dos dados fictícios
   static/               # CSS e JavaScript próprios
   templates/            # interface e página de login
 .github/                # CI e atualizações automatizadas
@@ -119,4 +127,4 @@ requirements.txt        # dependências reproduzíveis
 
 ## Próximas evoluções
 
-Para uso além de portfólio: MFA e rate limiting no login, trilha de auditoria, criptografia de CPF com índice HMAC, paginação, política formal de retenção e restauração periódica de backup.
+Para uso além de portfólio: verificação de e-mail, MFA e rate limiting no login, trilha de auditoria, criptografia de CPF com índice HMAC, paginação, política formal de retenção e restauração periódica de backup.

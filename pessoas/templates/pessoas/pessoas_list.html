@@ -12,7 +12,9 @@
           <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Buscar por nome ou sobrenome">
           <button class="btn btn-outline-light" type="submit"><i class="bi bi-search"></i></button>
         </form>
-        <a class="btn btn-light" href="{% url 'pessoas:pessoa_create' %}"><i class="bi bi-person-plus me-1"></i>Adicionar</a>
+        {% if perms.pessoas.add_pessoa %}
+          <a class="btn btn-light" href="{% url 'pessoas:pessoa_create' %}"><i class="bi bi-person-plus me-1"></i>Adicionar</a>
+        {% endif %}
       </div>
     </div>
 
@@ -42,8 +44,12 @@
                 <td class="text-end">
                   <div class="btn-group" role="group">
                     <a class="btn btn-sm btn-outline-light" href="{% url 'pessoas:pessoa_detail' p.pk %}"><i class="bi bi-eye"></i></a>
+                    {% if perms.pessoas.change_pessoa %}
                     <a class="btn btn-sm btn-outline-light" href="{% url 'pessoas:pessoa_edicao_menu' p.pk %}"><i class="bi bi-pencil"></i></a>
+                    {% endif %}
+                    {% if perms.pessoas.delete_pessoa %}
                     <a class="btn btn-sm btn-outline-danger" href="{% url 'pessoas:pessoa_delete' p.pk %}"><i class="bi bi-trash"></i></a>
+                    {% endif %}
                   </div>
                 </td>
               </tr>

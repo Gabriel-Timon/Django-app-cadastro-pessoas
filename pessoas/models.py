@@ -7,6 +7,13 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 
+DEMO_KEY_PREFIX = 'portfolio-demo-'
+DEMO_RECORD_COUNT = 50
+DEMO_KEYS = tuple(
+    f'{DEMO_KEY_PREFIX}{index:03d}' for index in range(1, DEMO_RECORD_COUNT + 1)
+)
+
+
 def validate_cpf(value: str) -> None:
     cpf = value or ''
     if not re.fullmatch(r'[0-9]{11}', cpf):
@@ -42,6 +49,14 @@ class Pessoa(models.Model):
     data_nascimento = models.DateField(validators=[validate_data_nascimento])
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES)
     cpf = models.CharField(max_length=11, unique=True, validators=[validate_cpf])
+    demo_key = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        help_text='Identificador interno de registros sintéticos do portfólio.',
+    )
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -81,3 +96,17 @@ class Pessoa(models.Model):
     @property
     def sexo_extenso(self) -> str:
         return dict(self.SEXO_CHOICES).get(self.sexo, self.sexo)
+
+
+class SignupThrottle(models.Model):
+    key_hash = models.CharField(max_length=64, unique=True, editable=False)
+    window_started_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Limite de cadastro'
+        verbose_name_plural = 'Limites de cadastro'
+
+    def __str__(self) -> str:
+        return f'Limite de cadastro ({self.attempts} tentativas)'
