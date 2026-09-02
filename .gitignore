@@ -1,73 +1,47 @@
-# ======================
 # Python
-# ======================
 __pycache__/
 *.py[cod]
 *$py.class
+.Python
 
-# ======================
-# Virtual Environment
-# ======================
+# Ambientes virtuais
 .venv/
 venv/
 env/
 
-# ======================
-# Django
-# ======================
+# Django e banco local
 *.log
+*.sqlite3
+*.sqlite3-*
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Media files (uploads)
+staticfiles/
 media/
 
-# Static collected files
-staticfiles/
-
-# ======================
-# Migrations (opcional)
-# ======================
-# Se quiser versionar as migrations, COMENTE essas linhas
-# **/migrations/*.py
-# !**/migrations/__init__.py
-
-# ======================
-# Environment variables
-# ======================
+# Variáveis de ambiente e segredos
 .env
 .env.*
+!.env.example
 
-# ======================
-# IDEs / Editors
-# ======================
+# Testes, cobertura e ferramentas de qualidade
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDEs e editores
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# ======================
-# OS files
-# ======================
+# Sistema operacional
 .DS_Store
 Thumbs.db
 
-# ======================
-# Tests / coverage
-# ======================
-.coverage
-htmlcov/
-.pytest_cache/
-
-# ======================
-# Node / frontend (se usar)
-# ======================
+# Jupyter e frontend (se aplicável)
+.ipynb_checkpoints/
 node_modules/
 dist/
 build/
-
-# ======================
-# Jupyter (se usar)
-# ======================
-.ipynb_checkpoints/
