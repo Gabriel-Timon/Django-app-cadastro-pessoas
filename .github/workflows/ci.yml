@@ -27,14 +27,15 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgres://cadastro_ci:cadastro_ci_password@localhost:5432/cadastro_pessoas_ci
+      DJANGO_DB_SSL_REQUIRE: "False"
       DJANGO_ALLOWED_HOSTS: localhost,testserver
       DJANGO_DEBUG: "False"
       DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "True"
       DJANGO_SECURE_HSTS_PRELOAD: "True"
       DJANGO_SECRET_KEY: ci-only-secret-key-with-at-least-fifty-characters-123456789
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip

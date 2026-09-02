@@ -96,7 +96,7 @@ if DATABASE_URL:
         'default': dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=0,
-            ssl_require=not DEBUG,
+            ssl_require=env_bool('DJANGO_DB_SSL_REQUIRE', default=not DEBUG),
         )
     }
 elif IS_VERCEL:

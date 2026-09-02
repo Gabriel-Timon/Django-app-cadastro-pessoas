@@ -25,6 +25,7 @@ Cadastre na Vercel:
 DJANGO_SECRET_KEY=<valor gerado>
 DJANGO_DEBUG=False
 DATABASE_URL=<fornecida pela integração PostgreSQL>
+DJANGO_DB_SSL_REQUIRE=True
 ```
 
 Os hosts `*.vercel.app` são reconhecidos no ambiente Vercel. Para domínio próprio, defina valores exatos:

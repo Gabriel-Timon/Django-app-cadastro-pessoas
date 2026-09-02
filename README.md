@@ -91,6 +91,7 @@ O ambiente de produção exige:
 DJANGO_SECRET_KEY=<chave longa e aleatória>
 DJANGO_DEBUG=False
 DATABASE_URL=<PostgreSQL gerenciado com TLS>
+DJANGO_DB_SSL_REQUIRE=True
 ```
 
 Para domínio próprio, configure também `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` com os hosts e origens exatos. Migrações são executadas como uma etapa controlada de release, nunca em cada cold start ou requisição.
