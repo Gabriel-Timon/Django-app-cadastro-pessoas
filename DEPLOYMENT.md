@@ -42,9 +42,18 @@ Após vincular a CLI ao projeto:
 
 ```bash
 vercel link
+```
+
+Como variáveis marcadas como `Sensitive` não são reveladas novamente pela CLI, use uma chave efêmera apenas no processo administrativo local. No PowerShell:
+
+```powershell
 vercel env pull .env.local --environment=production
+$env:DJANGO_SECRET_KEY = python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+$env:DJANGO_DEBUG = "False"
 python manage.py migrate --noinput
 python manage.py createsuperuser
+Remove-Item Env:DJANGO_SECRET_KEY
+Remove-Item Env:DJANGO_DEBUG
 ```
 
 O `manage.py` carrega `.env.local`, que permanece ignorado pelo Git. Execute migrações uma única vez por release, após revisar `python manage.py migrate --plan`. Elas não rodam automaticamente no build para evitar concorrência entre previews e produção.

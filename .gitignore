@@ -46,3 +46,7 @@ Thumbs.db
 node_modules/
 dist/
 build/
+
+# Ferramentas locais de agentes
+.agents/
+skills-lock.json

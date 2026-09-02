@@ -1,6 +1,11 @@
 # Cadastro de Pessoas
 
+[![CI](https://github.com/Gabriel-Timon/Django-app-cadastro-pessoas/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel-Timon/Django-app-cadastro-pessoas/actions/workflows/ci.yml)
+[![Vercel](https://img.shields.io/badge/demo-Vercel-black?logo=vercel)](https://django-app-cadastro-pessoas.vercel.app/accounts/login/)
+
 Aplicação web de gestão de pessoas construída com Django. O projeto demonstra CRUD, filtros, estatísticas e exportação de dados em uma interface responsiva, com controles de acesso e configuração pronta para execução serverless na Vercel.
+
+**Aplicação em produção:** <https://django-app-cadastro-pessoas.vercel.app/> (acesso autenticado).
 
 > Projeto educacional de portfólio. Use somente dados sintéticos; não cadastre informações pessoais reais.
 
@@ -71,6 +76,8 @@ A suíte cobre regras do modelo, CPF, formulários, autenticação, permissões,
 ## Deploy na Vercel
 
 A Vercel detecta `manage.py` e `cadastro_pessoas.wsgi.application` automaticamente. Não são necessárias rotas `/api`; o `vercel.json` define somente a região `gru1` para manter a Function próxima ao PostgreSQL em São Paulo.
+
+O deploy de produção usa PostgreSQL serverless Neon no plano gratuito. Os previews recebem branches isoladas do banco por meio da integração gerenciada.
 
 O ambiente de produção exige:
 
