@@ -12,6 +12,14 @@ from .forms import PessoaForm
 from .models import Pessoa
 
 
+class SecureRequestMixin:
+    """Executa requests como HTTPS, inclusive quando o CI usa settings de produção."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.defaults['HTTP_X_FORWARDED_PROTO'] = 'https'
+
+
 def cpf_from_base(base: str) -> str:
     digits = [int(digit) for digit in base]
     for tamanho in (9, 10):
@@ -90,7 +98,7 @@ class PessoaFormTests(TestCase):
         self.assertIn('cpf', form.errors)
 
 
-class AccessControlTests(TestCase):
+class AccessControlTests(SecureRequestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(username='sem-permissao', password='senha-forte-teste')
@@ -121,7 +129,7 @@ class AccessControlTests(TestCase):
         self.assertRedirects(post_response, reverse('login'))
 
 
-class PessoaViewTests(TestCase):
+class PessoaViewTests(SecureRequestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_superuser(
@@ -145,6 +153,7 @@ class PessoaViewTests(TestCase):
         )
 
     def setUp(self):
+        super().setUp()
         self.client.force_login(self.user)
 
     def test_dashboard_displays_summary_and_security_headers(self):
