@@ -1,140 +1,115 @@
 # Cadastro de Pessoas
 
-Aplicação web para cadastro e gestão de pessoas, construída com Django. O projeto transforma um fluxo originalmente executado em linha de comando em uma interface web com persistência em banco de dados, filtros, estatísticas e exportação de dados.
+Aplicação web de gestão de pessoas construída com Django. O projeto demonstra CRUD, filtros, estatísticas e exportação de dados em uma interface responsiva, com controles de acesso e configuração pronta para execução serverless na Vercel.
 
-## Visão geral
+> Projeto educacional de portfólio. Use somente dados sintéticos; não cadastre informações pessoais reais.
 
-O sistema oferece um CRUD completo de pessoas e reúne as principais operações em um dashboard responsivo:
+## Funcionalidades
 
 - cadastro, consulta, edição por campo e exclusão;
-- busca por nome, sobrenome ou CPF;
+- busca protegida por CPF e pesquisa por nome ou sobrenome;
 - filtros por sexo, idade e mês de aniversário;
-- estatísticas de total, média de idade, faixas etárias e distribuição por mês;
-- exportação para CSV, XLSX e JSON;
+- estatísticas e gráficos por faixa etária, sexo e aniversário;
+- exportação autorizada para CSV, XLSX e JSON;
 - painel administrativo do Django;
-- comando de gerenciamento para popular um ambiente local com dados de demonstração.
+- interface responsiva com Bootstrap 5.
+
+## Segurança
+
+- autenticação obrigatória em todas as páginas de dados;
+- permissões separadas para visualizar, cadastrar, alterar, excluir e exportar;
+- CPF validado e mascarado em páginas, admin, mensagens e exportações;
+- proteção contra formula injection em CSV e XLSX;
+- CSRF, cookies `Secure`, HSTS, redirecionamento HTTPS e proxy seguro em produção;
+- CSP, SRI para dependências do CDN, proteção contra iframe e bloqueio de cache de PII;
+- chave secreta e banco obrigatórios no ambiente Vercel;
+- dependências fixadas, auditadas e atualizadas pelo Dependabot;
+- CI com testes, auditoria de vulnerabilidades, migrações, estáticos e `check --deploy`.
+
+Consulte [SECURITY.md](SECURITY.md) para a política de segurança e privacidade do projeto.
 
 ## Tecnologias
 
-- Python 3.10+
-- Django 5.x (compatível com Django 4.2 até antes da 6.0)
-- SQLite para desenvolvimento
-- Bootstrap 5 e Bootstrap Icons
+- Python 3.13
+- Django 5.2.17 LTS
+- PostgreSQL em produção e SQLite somente no desenvolvimento
+- Bootstrap 5, Bootstrap Icons e Chart.js
 - openpyxl para exportação XLSX
-- Testes com o framework nativo do Django
+- GitHub Actions e Dependabot
+- Vercel Python Functions com detecção nativa de Django
 
 ## Executando localmente
-
-### 1. Criar e ativar o ambiente virtual
 
 No Windows PowerShell:
 
 ```powershell
 python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
-```
-
-No Linux ou macOS:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2. Instalar dependências
-
-```bash
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-```
-
-### 3. Configurar o banco
-
-```bash
 python manage.py migrate
-```
-
-O SQLite é criado localmente como `db.sqlite3` e não é versionado. Para inserir registros fictícios e explorar a aplicação:
-
-```bash
-python manage.py seed_pessoas
-```
-
-O comando é idempotente: executar novamente não duplica registros pelo CPF.
-
-### 4. Iniciar o servidor
-
-```bash
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Acesse <http://127.0.0.1:8000/>.
+No Linux ou macOS, ative o ambiente com `source .venv/bin/activate`. A aplicação estará em <http://127.0.0.1:8000/> e redirecionará para a página de login.
 
-## Testes e verificações
+As configurações locais podem ser copiadas de `.env.example` para `.env`. Arquivos `.env`, `.env.local`, bancos SQLite e a pasta `.vercel` não são versionados.
 
-Execute a suíte automatizada com:
+## Testes e qualidade
 
 ```bash
 python manage.py test
+python manage.py makemigrations --check --dry-run
+python manage.py collectstatic --noinput
+python manage.py check --deploy
+python -m pip check
+python -m pip_audit --requirement requirements.txt
 ```
 
-Para validar a configuração do projeto:
+A suíte cobre regras do modelo, CPF, formulários, autenticação, permissões, CRUD, filtros, estatísticas, headers de segurança, mascaramento e exportações.
 
-```bash
-python manage.py check
+## Deploy na Vercel
+
+A Vercel detecta `manage.py` e `cadastro_pessoas.wsgi.application` automaticamente. Não são necessárias rotas `/api`; o `vercel.json` define somente a região `gru1` para manter a Function próxima ao PostgreSQL em São Paulo.
+
+O ambiente de produção exige:
+
+```text
+DJANGO_SECRET_KEY=<chave longa e aleatória>
+DJANGO_DEBUG=False
+DATABASE_URL=<PostgreSQL gerenciado com TLS>
 ```
+
+Para domínio próprio, configure também `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` com os hosts e origens exatos. Migrações são executadas como uma etapa controlada de release, nunca em cada cold start ou requisição.
+
+O procedimento operacional completo está em [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Rotas principais
 
-| Área | Rotas disponíveis |
+| Área | Rotas |
 | --- | --- |
+| Login | `/accounts/login/` |
 | Dashboard | `/` |
 | Cadastros | `/pessoas/`, `/pessoas/nova/`, `/pessoas/<id>/` |
-| Busca | `/cadastro/buscar/` |
-| Edição | `/pessoas/<id>/editar/` e subrotas por campo |
-| Filtros | `/filtros/` e subrotas por sexo, idade e aniversário |
-| Estatísticas | `/estatisticas/` e subrotas de indicadores |
-| Exportações | `/exportacao/csv/`, `/exportacao/xlsx/`, `/exportacao/json/` |
+| Busca protegida | `/cadastro/buscar/` |
+| Filtros | `/filtros/` |
+| Estatísticas | `/estatisticas/` |
+| Exportações | `/exportacao/` |
 | Administração | `/admin/` |
 
-O projeto web é um complemento da versão CLI: mantém as mesmas operações de cadastro, consulta, edição, filtros, estatísticas e exportação, adicionando interface responsiva e persistência via Django ORM.
-
-## Configuração por ambiente
-
-As configurações sensíveis e específicas do ambiente podem ser definidas por variáveis de ambiente. Consulte `.env.example` como referência:
+## Estrutura
 
 ```text
-DJANGO_SECRET_KEY=chave-local-de-desenvolvimento
-DJANGO_DEBUG=True
-DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+cadastro_pessoas/       # settings, URLs e entrypoints WSGI/ASGI
+pessoas/                # domínio, views, forms, templates e estáticos
+  migrations/           # evolução versionada do schema
+  static/               # CSS e JavaScript próprios
+  templates/            # interface e página de login
+.github/                # CI e atualizações automatizadas
+manage.py               # comandos administrativos do Django
+requirements.txt        # dependências reproduzíveis
 ```
 
-Em produção, use uma chave secreta exclusiva, defina `DJANGO_DEBUG=False`, configure `DJANGO_ALLOWED_HOSTS` e substitua o SQLite por um banco adequado ao ambiente.
+## Próximas evoluções
 
-## Painel administrativo
-
-Para criar um usuário administrador:
-
-```bash
-python manage.py createsuperuser
-```
-
-Depois, acesse <http://127.0.0.1:8000/admin/>.
-
-## Estrutura principal
-
-```text
-cadastro_pessoas/       # configurações e URLs do projeto Django
-pessoas/                # domínio da aplicação
-  management/           # comandos de gerenciamento, incluindo seed
-  migrations/           # histórico versionado do schema
-  templates/            # páginas HTML
-  static/               # estilos da aplicação
-  forms.py              # validação e normalização de entradas
-  models.py             # entidade Pessoa e regras de domínio
-  views.py              # CRUD, filtros, estatísticas e exportações
-manage.py               # ponto de entrada dos comandos Django
-```
-
-## Próximos passos
-
-Para evoluir o projeto em um cenário de produção, os próximos incrementos naturais são autenticação e autorização de usuários, paginação da listagem, validação completa dos dígitos verificadores do CPF, cobertura contínua em CI e configuração de um banco PostgreSQL.
+Para uso além de portfólio: MFA e rate limiting no login, trilha de auditoria, criptografia de CPF com índice HMAC, paginação, política formal de retenção e restauração periódica de backup.

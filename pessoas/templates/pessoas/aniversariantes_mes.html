@@ -42,7 +42,7 @@
                   <td class="fw-semibold">{{ p.nome }}</td>
                   <td>{{ p.sobrenome }}</td>
                   <td>{{ p.idade }}</td>
-                  <td class="font-mono">{{ p.cpf_formatado }}</td>
+                  <td class="font-mono">{{ p.cpf_mascarado }}</td>
                   <td>{{ p.data_nascimento|date:"d/m/Y" }}</td>
                   <td class="text-end">
                     <a class="btn btn-sm btn-outline-light" href="{% url 'pessoas:pessoa_detail' p.pk %}"><i class="bi bi-eye"></i></a>

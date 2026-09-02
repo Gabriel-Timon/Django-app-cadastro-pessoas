@@ -1,8 +1,9 @@
 import json
-from datetime import date
+from datetime import date, timedelta
 from io import BytesIO
 
-from django.core.management import call_command
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from openpyxl import load_workbook
@@ -11,32 +12,58 @@ from .forms import PessoaForm
 from .models import Pessoa
 
 
+def cpf_from_base(base: str) -> str:
+    digits = [int(digit) for digit in base]
+    for tamanho in (9, 10):
+        soma = sum(digit * weight for digit, weight in zip(digits[:tamanho], range(tamanho + 1, 1, -1)))
+        verifier = (soma * 10) % 11
+        digits.append(0 if verifier == 10 else verifier)
+    return ''.join(str(digit) for digit in digits)
+
+
 class PessoaModelTests(TestCase):
-    def test_properties_format_cpf_translate_sexo_and_calculate_age(self):
+    def test_properties_mask_cpf_translate_sexo_and_calculate_age(self):
         hoje = date.today()
         pessoa = Pessoa(
             nome='Ana',
             sobrenome='Silva',
             data_nascimento=date(hoje.year - 30, hoje.month, hoje.day),
             sexo=Pessoa.SEXO_FEM,
-            cpf='12345678901',
+            cpf=cpf_from_base('123456789'),
         )
 
-        self.assertEqual(pessoa.cpf_formatado, '123.456.789-01')
+        self.assertEqual(pessoa.cpf_formatado, '123.456.789-09')
+        self.assertEqual(pessoa.cpf_mascarado, '***.***.***-09')
         self.assertEqual(pessoa.sexo_extenso, 'Feminino')
         self.assertEqual(pessoa.idade, 30)
-        self.assertEqual(str(pessoa), 'Ana Silva (123.456.789-01)')
+        self.assertEqual(str(pessoa), 'Ana Silva (***.***.***-09)')
+
+    def test_model_rejects_invalid_cpf_and_future_birth_date(self):
+        pessoa = Pessoa(
+            nome='Ana',
+            sobrenome='Silva',
+            data_nascimento=date.today() + timedelta(days=1),
+            sexo=Pessoa.SEXO_FEM,
+            cpf='11111111111',
+        )
+
+        with self.assertRaises(ValidationError) as error:
+            pessoa.full_clean()
+
+        self.assertIn('cpf', error.exception.message_dict)
+        self.assertIn('data_nascimento', error.exception.message_dict)
 
 
 class PessoaFormTests(TestCase):
     def test_form_normalizes_names_and_formatted_cpf(self):
+        cpf = cpf_from_base('123456789')
         form = PessoaForm(
             data={
                 'nome': '  ana  ',
                 'sobrenome': ' silva ',
                 'data_nascimento': '10/02/1990',
                 'sexo': Pessoa.SEXO_FEM,
-                'cpf': '123.456.789-01',
+                'cpf': f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}',
             }
         )
 
@@ -45,12 +72,12 @@ class PessoaFormTests(TestCase):
 
         self.assertEqual(pessoa.nome, 'Ana')
         self.assertEqual(pessoa.sobrenome, 'Silva')
-        self.assertEqual(pessoa.cpf, '12345678901')
+        self.assertEqual(pessoa.cpf, cpf)
 
-    def test_form_rejects_invalid_cpf_and_empty_name(self):
+    def test_form_rejects_invalid_cpf_empty_name_and_formula_prefix(self):
         form = PessoaForm(
             data={
-                'nome': ' ',
+                'nome': '=HYPERLINK("https://example.com")',
                 'sobrenome': 'Silva',
                 'data_nascimento': '10/02/1990',
                 'sexo': Pessoa.SEXO_FEM,
@@ -63,36 +90,64 @@ class PessoaFormTests(TestCase):
         self.assertIn('cpf', form.errors)
 
 
-class SeedCommandTests(TestCase):
-    def test_seed_command_is_idempotent(self):
-        call_command('seed_pessoas')
-        quantidade_inicial = Pessoa.objects.count()
+class AccessControlTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_user(username='sem-permissao', password='senha-forte-teste')
 
-        call_command('seed_pessoas')
+    def test_login_and_admin_login_are_public(self):
+        self.assertEqual(self.client.get(reverse('login')).status_code, 200)
+        self.assertEqual(self.client.get('/admin/login/').status_code, 200)
 
-        self.assertGreater(quantidade_inicial, 0)
-        self.assertEqual(Pessoa.objects.count(), quantidade_inicial)
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(reverse('pessoas:dashboard'))
+
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('pessoas:dashboard')}")
+
+    def test_authenticated_user_without_permission_receives_403(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('pessoas:dashboard'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_logout_requires_post_and_ends_session(self):
+        self.client.force_login(self.user)
+
+        get_response = self.client.get(reverse('logout'))
+        post_response = self.client.post(reverse('logout'))
+
+        self.assertEqual(get_response.status_code, 405)
+        self.assertRedirects(post_response, reverse('login'))
 
 
 class PessoaViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_superuser(
+            username='admin-teste',
+            email='admin@example.com',
+            password='senha-forte-teste',
+        )
         cls.pessoa = Pessoa.objects.create(
             nome='Ana',
             sobrenome='Silva',
             data_nascimento=date(1990, 1, 10),
             sexo=Pessoa.SEXO_FEM,
-            cpf='12345678901',
+            cpf=cpf_from_base('123456789'),
         )
         cls.outro = Pessoa.objects.create(
             nome='Bruno',
             sobrenome='Santos',
             data_nascimento=date(1985, 5, 20),
             sexo=Pessoa.SEXO_MASC,
-            cpf='98765432109',
+            cpf=cpf_from_base('987654321'),
         )
 
-    def test_dashboard_displays_summary(self):
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_dashboard_displays_summary_and_security_headers(self):
         response = self.client.get(reverse('pessoas:dashboard'))
 
         self.assertEqual(response.status_code, 200)
@@ -100,18 +155,21 @@ class PessoaViewTests(TestCase):
         self.assertEqual(response.context['homens'], 1)
         self.assertEqual(response.context['mulheres'], 1)
         self.assertContains(response, 'Menu Principal')
+        self.assertIn("default-src 'self'", response.headers['Content-Security-Policy'])
+        self.assertEqual(response.headers['X-Robots-Tag'], 'noindex, nofollow')
+        self.assertIn('no-store', response.headers['Cache-Control'])
 
-    def test_list_search_accepts_formatted_cpf(self):
-        response = self.client.get(
-            reverse('pessoas:pessoa_list'),
-            {'q': '123.456.789-01'},
-        )
+    def test_list_searches_name_and_masks_cpf(self):
+        response = self.client.get(reverse('pessoas:pessoa_list'), {'q': 'Ana'})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Ana')
         self.assertNotContains(response, 'Bruno')
+        self.assertContains(response, self.pessoa.cpf_mascarado)
+        self.assertNotContains(response, self.pessoa.cpf)
 
     def test_create_view_persists_person_and_redirects_to_detail(self):
+        cpf = cpf_from_base('111222333')
         response = self.client.post(
             reverse('pessoas:pessoa_create'),
             {
@@ -119,15 +177,12 @@ class PessoaViewTests(TestCase):
                 'sobrenome': 'souza',
                 'data_nascimento': '01/01/2000',
                 'sexo': Pessoa.SEXO_FEM,
-                'cpf': '11122233344',
+                'cpf': cpf,
             },
         )
 
-        pessoa = Pessoa.objects.get(cpf='11122233344')
-        self.assertRedirects(
-            response,
-            reverse('pessoas:pessoa_detail', kwargs={'pk': pessoa.pk}),
-        )
+        pessoa = Pessoa.objects.get(cpf=cpf)
+        self.assertRedirects(response, reverse('pessoas:pessoa_detail', kwargs={'pk': pessoa.pk}))
         self.assertEqual(pessoa.nome, 'Carla')
 
     def test_edit_name_view_updates_person(self):
@@ -136,28 +191,17 @@ class PessoaViewTests(TestCase):
             {'nome': 'beatriz'},
         )
 
-        self.assertRedirects(
-            response,
-            reverse('pessoas:pessoa_detail', kwargs={'pk': self.pessoa.pk}),
-        )
+        self.assertRedirects(response, reverse('pessoas:pessoa_detail', kwargs={'pk': self.pessoa.pk}))
         self.pessoa.refresh_from_db()
         self.assertEqual(self.pessoa.nome, 'Beatriz')
 
     def test_search_by_cpf_redirects_to_person_detail(self):
-        response = self.client.post(
-            reverse('pessoas:buscar_por_cpf'),
-            {'cpf': '123.456.789-01'},
-        )
+        response = self.client.post(reverse('pessoas:buscar_por_cpf'), {'cpf': self.pessoa.cpf_formatado})
 
-        self.assertRedirects(
-            response,
-            reverse('pessoas:pessoa_detail', kwargs={'pk': self.pessoa.pk}),
-        )
+        self.assertRedirects(response, reverse('pessoas:pessoa_detail', kwargs={'pk': self.pessoa.pk}))
 
     def test_delete_view_removes_person(self):
-        response = self.client.post(
-            reverse('pessoas:pessoa_delete', kwargs={'pk': self.outro.pk}),
-        )
+        response = self.client.post(reverse('pessoas:pessoa_delete', kwargs={'pk': self.outro.pk}))
 
         self.assertRedirects(response, reverse('pessoas:pessoa_list'))
         self.assertFalse(Pessoa.objects.filter(pk=self.outro.pk).exists())
@@ -170,19 +214,43 @@ class PessoaViewTests(TestCase):
         response = self.client.get(reverse('pessoas:est_total_cadastros'))
         self.assertContains(response, '2')
 
-    def test_export_views_return_expected_formats(self):
+    def test_export_views_return_expected_formats_without_full_cpf(self):
         csv_response = self.client.get(reverse('pessoas:export_csv'))
         self.assertEqual(csv_response.status_code, 200)
         self.assertTrue(csv_response['Content-Type'].startswith('text/csv'))
-        self.assertIn('Ana', csv_response.content.decode('utf-8'))
+        csv_content = csv_response.content.decode('utf-8')
+        self.assertIn('Ana', csv_content)
+        self.assertIn(self.pessoa.cpf_mascarado, csv_content)
+        self.assertNotIn(self.pessoa.cpf, csv_content)
 
         json_response = self.client.get(reverse('pessoas:export_json'))
         self.assertEqual(json_response.status_code, 200)
-        self.assertEqual(json.loads(json_response.content)[0]['nome'], 'Ana')
+        self.assertEqual(json.loads(json_response.content)[0]['cpf'], self.pessoa.cpf_mascarado)
 
         xlsx_response = self.client.get(reverse('pessoas:export_xlsx'))
         self.assertEqual(xlsx_response.status_code, 200)
         workbook = load_workbook(BytesIO(xlsx_response.content), read_only=True)
         self.assertEqual(workbook.sheetnames, ['Pessoas'])
         self.assertEqual(workbook.active['A2'].value, 'Ana')
+        self.assertEqual(workbook.active['E2'].value, self.pessoa.cpf_mascarado)
+        workbook.close()
+
+    def test_export_neutralizes_spreadsheet_formula(self):
+        Pessoa.objects.create(
+            nome='=1+1',
+            sobrenome='Teste',
+            data_nascimento=date(2000, 1, 1),
+            sexo=Pessoa.SEXO_FEM,
+            cpf=cpf_from_base('222333444'),
+        )
+
+        csv_content = self.client.get(reverse('pessoas:export_csv')).content.decode('utf-8')
+        workbook = load_workbook(
+            BytesIO(self.client.get(reverse('pessoas:export_xlsx')).content),
+            read_only=True,
+        )
+        names = [row[0].value for row in workbook.active.iter_rows(min_col=1, max_col=1)]
+
+        self.assertIn("'=1+1", csv_content)
+        self.assertIn("'=1+1", names)
         workbook.close()

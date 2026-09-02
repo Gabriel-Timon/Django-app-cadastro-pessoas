@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import csv
 import json
-import re
 from datetime import date
 from io import BytesIO
 
 from django.contrib import messages
+from django.contrib.auth.decorators import permission_required
 from django.db.models import Count, Q
 from django.db.models.functions import ExtractMonth
 from django.http import HttpResponse
@@ -28,12 +28,16 @@ from .forms import (
 from .models import Pessoa
 
 
+view_pessoa_required = permission_required('pessoas.view_pessoa', raise_exception=True)
+add_pessoa_required = permission_required('pessoas.add_pessoa', raise_exception=True)
+change_pessoa_required = permission_required('pessoas.change_pessoa', raise_exception=True)
+delete_pessoa_required = permission_required('pessoas.delete_pessoa', raise_exception=True)
+export_pessoa_required = permission_required('pessoas.export_pessoa', raise_exception=True)
+
+
 # -------------------------
 # Helpers
 # -------------------------
-def normalize_cpf(value: str) -> str:
-    return re.sub(r'\D+', '', value or '')
-
 def years_ago(d: date, years: int) -> date:
     """Retorna uma data equivalente a 'd - years', ajustando 29/02 quando necessário."""
     try:
@@ -48,9 +52,19 @@ def calc_media_idade(pessoas: list[Pessoa]) -> float:
     return round(sum(p.idade for p in pessoas) / len(pessoas), 1)
 
 
+def spreadsheet_safe(value):
+    """Evita que planilhas interpretem texto controlado pelo usuário como fórmula."""
+    if not isinstance(value, str):
+        return value
+    if value.startswith(('=', '+', '-', '@', '\t', '\r')):
+        return f"'{value}"
+    return value
+
+
 # -------------------------
 # Menu Principal
 # -------------------------
+@view_pessoa_required
 def dashboard(request):
     pessoas_qs = Pessoa.objects.all()
     pessoas = list(pessoas_qs)
@@ -76,6 +90,7 @@ def sair(request):
 # Editar cadastro (menu equivalente ao CLI)
 # -------------------------
 
+@change_pessoa_required
 def menu_edicao_cadastro(request):
     return render(request, 'pessoas/menu_edicao_cadastro.html', {'page_title': 'Editar cadastro'})
 
@@ -83,16 +98,13 @@ def menu_edicao_cadastro(request):
 # -------------------------
 # Cadastros (CRUD + Buscar CPF)
 # -------------------------
+@view_pessoa_required
 def pessoa_list(request):
     q = (request.GET.get('q') or '').strip()
     pessoas_qs = Pessoa.objects.all()
 
     if q:
-        q_norm = normalize_cpf(q)
-        if q_norm.isdigit() and len(q_norm) == 11:
-            pessoas_qs = pessoas_qs.filter(cpf=q_norm)
-        else:
-            pessoas_qs = pessoas_qs.filter(Q(nome__icontains=q) | Q(sobrenome__icontains=q))
+        pessoas_qs = pessoas_qs.filter(Q(nome__icontains=q) | Q(sobrenome__icontains=q))
 
     context = {
         'page_title': 'Todos os cadastros',
@@ -102,6 +114,7 @@ def pessoa_list(request):
     }
     return render(request, 'pessoas/pessoas_list.html', context)
 
+@add_pessoa_required
 def pessoa_create(request):
     if request.method == 'POST':
         form = PessoaForm(request.POST)
@@ -119,6 +132,7 @@ def pessoa_create(request):
         'submit_label': 'Cadastrar',
     })
 
+@view_pessoa_required
 def pessoa_detail(request, pk: int):
     pessoa = get_object_or_404(Pessoa, pk=pk)
     return render(request, 'pessoas/pessoa_detail.html', {
@@ -126,6 +140,7 @@ def pessoa_detail(request, pk: int):
         'pessoa': pessoa,
     })
 
+@view_pessoa_required
 def buscar_por_cpf(request):
     """Página única de busca por CPF.
 
@@ -161,6 +176,7 @@ def buscar_por_cpf(request):
 # -------------------------
 # Edição (menu + edição por campo)
 # -------------------------
+@change_pessoa_required
 def pessoa_edicao_menu(request, pk: int):
     pessoa = get_object_or_404(Pessoa, pk=pk)
     return render(request, 'pessoas/pessoa_edicao_menu.html', {
@@ -188,18 +204,23 @@ def _editar_campo(request, pk: int, form_class, titulo: str, sucesso_msg: str):
         'submit_label': 'Salvar alteração',
     })
 
+@change_pessoa_required
 def pessoa_edit_nome(request, pk: int):
     return _editar_campo(request, pk, EditarNomeForm, 'Editar Nome', '✅ Nome alterado com sucesso!')
 
+@change_pessoa_required
 def pessoa_edit_sobrenome(request, pk: int):
     return _editar_campo(request, pk, EditarSobrenomeForm, 'Editar Sobrenome', '✅ Sobrenome alterado com sucesso!')
 
+@change_pessoa_required
 def pessoa_edit_nascimento(request, pk: int):
     return _editar_campo(request, pk, EditarNascimentoForm, 'Editar Data de nascimento', '✅ Data de nascimento alterada com sucesso!')
 
+@change_pessoa_required
 def pessoa_edit_sexo(request, pk: int):
     return _editar_campo(request, pk, EditarSexoForm, 'Editar Sexo', '✅ Sexo alterado com sucesso!')
 
+@change_pessoa_required
 def pessoa_edit_cpf(request, pk: int):
     return _editar_campo(request, pk, EditarCPFForm, 'Editar CPF', '✅ CPF alterado com sucesso!')
 
@@ -207,6 +228,7 @@ def pessoa_edit_cpf(request, pk: int):
 # -------------------------
 # Excluir
 # -------------------------
+@delete_pessoa_required
 def pessoa_delete(request, pk: int):
     pessoa = get_object_or_404(Pessoa, pk=pk)
 
@@ -225,12 +247,15 @@ def pessoa_delete(request, pk: int):
 # -------------------------
 # Menus: Filtros / Estatísticas / Exportação
 # -------------------------
+@view_pessoa_required
 def menu_filtros(request):
     return render(request, 'pessoas/menu_filtros.html', {'page_title': 'Menu de filtros'})
 
+@view_pessoa_required
 def menu_estatisticas(request):
     return render(request, 'pessoas/menu_estatisticas.html', {'page_title': 'Exibir estatísticas'})
 
+@export_pessoa_required
 def menu_exportacao(request):
     return render(request, 'pessoas/menu_exportacao.html', {'page_title': 'Opções de exportação'})
 
@@ -238,6 +263,7 @@ def menu_exportacao(request):
 # -------------------------
 # Filtros (equivalentes ao CLI)
 # -------------------------
+@view_pessoa_required
 def filtro_homens(request):
     pessoas = Pessoa.objects.filter(sexo=Pessoa.SEXO_MASC).order_by('nome', 'sobrenome')
     return render(request, 'pessoas/pessoas_list.html', {
@@ -247,6 +273,7 @@ def filtro_homens(request):
         'q': '',
     })
 
+@view_pessoa_required
 def filtro_mulheres(request):
     pessoas = Pessoa.objects.filter(sexo=Pessoa.SEXO_FEM).order_by('nome', 'sobrenome')
     return render(request, 'pessoas/pessoas_list.html', {
@@ -256,6 +283,7 @@ def filtro_mulheres(request):
         'q': '',
     })
 
+@view_pessoa_required
 def filtro_mais_velha(request):
     pessoa = Pessoa.objects.order_by('data_nascimento').first()
     if not pessoa:
@@ -266,6 +294,7 @@ def filtro_mais_velha(request):
         'pessoa': pessoa,
     })
 
+@view_pessoa_required
 def filtro_mais_nova(request):
     pessoa = Pessoa.objects.order_by('-data_nascimento').first()
     if not pessoa:
@@ -276,6 +305,7 @@ def filtro_mais_nova(request):
         'pessoa': pessoa,
     })
 
+@view_pessoa_required
 def filtro_menores(request):
     hoje = date.today()
     corte = years_ago(hoje, 18)  # nasceu depois disso => menor de 18
@@ -287,6 +317,7 @@ def filtro_menores(request):
         'q': '',
     })
 
+@view_pessoa_required
 def filtro_acima_media(request):
     pessoas = list(Pessoa.objects.all())
     media = calc_media_idade(pessoas)
@@ -298,6 +329,7 @@ def filtro_acima_media(request):
         'pessoas': acima,
     })
 
+@view_pessoa_required
 def filtro_aniversariantes_mes(request):
     form = MesForm(request.POST or None)
     pessoas = None
@@ -320,6 +352,7 @@ def filtro_aniversariantes_mes(request):
 # -------------------------
 # Estatísticas (equivalentes ao CLI)
 # -------------------------
+@view_pessoa_required
 def est_total_cadastros(request):
     total = Pessoa.objects.count()
     return render(request, 'pessoas/estatistica_total.html', {
@@ -327,6 +360,7 @@ def est_total_cadastros(request):
         'total': total,
     })
 
+@view_pessoa_required
 def est_homens_mulheres(request):
     homens = Pessoa.objects.filter(sexo=Pessoa.SEXO_MASC).count()
     mulheres = Pessoa.objects.filter(sexo=Pessoa.SEXO_FEM).count()
@@ -334,8 +368,14 @@ def est_homens_mulheres(request):
         'page_title': 'Quantidade de homens e mulheres',
         'homens': homens,
         'mulheres': mulheres,
+        'chart_data': {
+            'type': 'doughnut',
+            'labels': ['Homens', 'Mulheres'],
+            'values': [homens, mulheres],
+        },
     })
 
+@view_pessoa_required
 def est_media_idade(request):
     pessoas = list(Pessoa.objects.all())
     media = calc_media_idade(pessoas)
@@ -344,6 +384,7 @@ def est_media_idade(request):
         'media': media,
     })
 
+@view_pessoa_required
 def est_maiores_menores(request):
     hoje = date.today()
     corte = years_ago(hoje, 18)
@@ -356,6 +397,7 @@ def est_maiores_menores(request):
         'corte': corte,
     })
 
+@view_pessoa_required
 def est_faixa_etaria(request):
     pessoas = list(Pessoa.objects.all())
     faixa_0_17 = sum(1 for p in pessoas if 0 <= p.idade <= 17)
@@ -374,8 +416,14 @@ def est_faixa_etaria(request):
         'faixas': faixas,
         'labels': list(faixas.keys()),
         'values': list(faixas.values()),
+        'chart_data': {
+            'type': 'bar',
+            'labels': list(faixas.keys()),
+            'values': list(faixas.values()),
+        },
     })
 
+@view_pessoa_required
 def est_maior_menor_idade(request):
     pessoa_mais_velha = Pessoa.objects.order_by('data_nascimento').first()
     pessoa_mais_nova = Pessoa.objects.order_by('-data_nascimento').first()
@@ -385,6 +433,7 @@ def est_maior_menor_idade(request):
         'mais_nova': pessoa_mais_nova,
     })
 
+@view_pessoa_required
 def est_aniversariantes_mes(request):
     qs = (
         Pessoa.objects
@@ -413,6 +462,11 @@ def est_aniversariantes_mes(request):
     'data_chart': data_chart,
     'contagem': contagem,
     'linhas': linhas,   # <-- add
+    'chart_data': {
+        'type': 'line',
+        'labels': meses,
+        'values': data_chart,
+    },
     })
 
 
@@ -422,15 +476,17 @@ def est_aniversariantes_mes(request):
 def _pessoas_to_rows():
     pessoas = Pessoa.objects.all().order_by('nome', 'sobrenome')
     for p in pessoas:
-        yield {
+        row = {
             'nome': p.nome,
             'sobrenome': p.sobrenome,
             'data_nascimento': p.data_nascimento.strftime('%d/%m/%Y'),
             'sexo': p.sexo_extenso,
-            'cpf': (p.cpf or '').zfill(11),
+            'cpf': p.cpf_mascarado,
             'idade': p.idade,
         }
+        yield {key: spreadsheet_safe(value) for key, value in row.items()}
 
+@export_pessoa_required
 def export_csv(request):
     dados = list(_pessoas_to_rows())
     if not dados:
@@ -447,6 +503,7 @@ def export_csv(request):
 
     return response
 
+@export_pessoa_required
 def export_json(request):
     dados = list(_pessoas_to_rows())
     if not dados:
@@ -460,6 +517,7 @@ def export_json(request):
     response['Content-Disposition'] = 'attachment; filename="pessoas.json"'
     return response
 
+@export_pessoa_required
 def export_xlsx(request):
     dados = list(_pessoas_to_rows())
     if not dados:

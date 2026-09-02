@@ -6,7 +6,7 @@
 
     <div class="glass-card p-3 mb-3">
       <div class="h5 mb-1">{{ pessoa.nome }} {{ pessoa.sobrenome }}</div>
-      <div class="text-white-50">CPF: <span class="font-mono">{{ pessoa.cpf_formatado }}</span></div>
+      <div class="text-white-50">CPF: <span class="font-mono">{{ pessoa.cpf_mascarado }}</span></div>
       <div class="text-white-50">Nascimento: {{ pessoa.data_nascimento|date:"d/m/Y" }} • {{ pessoa.idade }} anos</div>
     </div>
 

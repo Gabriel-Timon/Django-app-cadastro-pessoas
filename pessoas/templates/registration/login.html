@@ -1,0 +1,52 @@
+{% extends 'pessoas/base.html' %}
+{% block content %}
+  <div class="row justify-content-center py-4">
+    <div class="col-md-7 col-lg-5">
+      <div class="glass-panel p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="icon-badge mx-auto mb-3"><i class="bi bi-shield-lock"></i></div>
+          <h1 class="h3 mb-1">Acesso restrito</h1>
+          <p class="text-white-50 mb-0">Entre para acessar os cadastros e relatórios.</p>
+        </div>
+
+        {% if form.errors %}
+          <div class="alert alert-danger" role="alert">
+            Usuário ou senha inválidos.
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.username.id_for_label }}">Usuário</label>
+            <input
+              class="form-control"
+              id="{{ form.username.id_for_label }}"
+              name="{{ form.username.html_name }}"
+              type="text"
+              autocomplete="username"
+              maxlength="150"
+              required
+              autofocus
+            >
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="{{ form.password.id_for_label }}">Senha</label>
+            <input
+              class="form-control"
+              id="{{ form.password.id_for_label }}"
+              name="{{ form.password.html_name }}"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+          <button class="btn btn-light w-100" type="submit">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Entrar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

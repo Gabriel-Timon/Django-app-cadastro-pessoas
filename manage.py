@@ -2,8 +2,14 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 def main():
+    project_dir = Path(__file__).resolve().parent
+    load_dotenv(project_dir / '.env.local')
+    load_dotenv(project_dir / '.env')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cadastro_pessoas.settings')
     try:
         from django.core.management import execute_from_command_line

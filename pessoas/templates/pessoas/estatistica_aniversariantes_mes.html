@@ -1,7 +1,5 @@
 {% extends 'pessoas/base.html' %}
-{% block extra_head %}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-{% endblock %}
+{% load static %}
 {% block content %}
   <div class="glass-panel p-4 p-md-5">
     <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
@@ -26,7 +24,8 @@
     </div>
 
     <div class="glass-card p-3 mt-3">
-      <canvas id="chartMes" height="120"></canvas>
+      <canvas id="chartPessoas" height="120"></canvas>
+      {{ chart_data|json_script:"chart-data" }}
     </div>
 
     <div class="mt-3">
@@ -37,24 +36,6 @@
   </div>
 {% endblock %}
 {% block extra_js %}
-<script>
-  const labels = {{ meses|safe }};
-  const values = {{ data_chart|safe }};
-
-  const ctx = document.getElementById('chartMes');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{ data: values, tension: 0.25 }]
-    },
-    options: {
-      scales: {
-        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,.08)' } },
-        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,.08)' } },
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script src="{% static 'pessoas/js/charts.js' %}"></script>
 {% endblock %}

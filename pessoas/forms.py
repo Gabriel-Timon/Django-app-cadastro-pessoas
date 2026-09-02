@@ -4,10 +4,19 @@ import re
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Pessoa
+from .models import Pessoa, validate_cpf
 
 def normalize_cpf(value: str) -> str:
-    return re.sub(r'\D+', '', value or '')
+    return re.sub(r'[^0-9]+', '', value or '')
+
+
+def normalize_name(value: str, field_label: str) -> str:
+    name = (value or '').strip()
+    if not name:
+        raise ValidationError(f'{field_label} não pode ser vazio.')
+    if name[0] in {'=', '+', '-', '@', '\t', '\r'}:
+        raise ValidationError(f'{field_label} contém um prefixo não permitido.')
+    return name.title()
 
 class PessoaForm(forms.ModelForm):
     data_nascimento = forms.DateField(
@@ -34,21 +43,16 @@ class PessoaForm(forms.ModelForm):
         }
 
     def clean_nome(self):
-        nome = (self.cleaned_data.get('nome') or '').strip()
-        if not nome:
-            raise ValidationError('Nome não pode ser vazio.')
-        return nome.title()
+        return normalize_name(self.cleaned_data.get('nome'), 'Nome')
 
     def clean_sobrenome(self):
-        sobrenome = (self.cleaned_data.get('sobrenome') or '').strip()
-        if not sobrenome:
-            raise ValidationError('Sobrenome não pode ser vazio.')
-        return sobrenome.title()
+        return normalize_name(self.cleaned_data.get('sobrenome'), 'Sobrenome')
 
     def clean_cpf(self):
         cpf = normalize_cpf(self.cleaned_data.get('cpf'))
         if not cpf.isdigit() or len(cpf) != 11:
             raise ValidationError('Formato inválido! Digite os 11 dígitos do CPF (somente números).')
+        validate_cpf(cpf)
         return cpf
 
 
@@ -63,6 +67,7 @@ class BuscarCPFForm(forms.Form):
         cpf = normalize_cpf(self.cleaned_data.get('cpf'))
         if not cpf.isdigit() or len(cpf) != 11:
             raise ValidationError('Inválido! Digite os 11 dígitos do CPF.')
+        validate_cpf(cpf)
         return cpf
 
 
@@ -79,10 +84,7 @@ class EditarNomeForm(EditarCampoBaseForm):
         widgets = {'nome': forms.TextInput(attrs={'class': 'form-control'})}
 
     def clean_nome(self):
-        nome = (self.cleaned_data.get('nome') or '').strip()
-        if not nome:
-            raise ValidationError('Nome não pode ser vazio.')
-        return nome.title()
+        return normalize_name(self.cleaned_data.get('nome'), 'Nome')
 
 
 class EditarSobrenomeForm(EditarCampoBaseForm):
@@ -91,10 +93,7 @@ class EditarSobrenomeForm(EditarCampoBaseForm):
         widgets = {'sobrenome': forms.TextInput(attrs={'class': 'form-control'})}
 
     def clean_sobrenome(self):
-        sobrenome = (self.cleaned_data.get('sobrenome') or '').strip()
-        if not sobrenome:
-            raise ValidationError('Sobrenome não pode ser vazio.')
-        return sobrenome.title()
+        return normalize_name(self.cleaned_data.get('sobrenome'), 'Sobrenome')
 
 
 class EditarNascimentoForm(EditarCampoBaseForm):
@@ -132,6 +131,7 @@ class EditarCPFForm(EditarCampoBaseForm):
         cpf = normalize_cpf(self.cleaned_data.get('cpf'))
         if not cpf.isdigit() or len(cpf) != 11:
             raise ValidationError('Formato inválido! Digite os 11 dígitos do CPF (somente números).')
+        validate_cpf(cpf)
         return cpf
 
 
